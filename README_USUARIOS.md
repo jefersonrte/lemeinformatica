@@ -16,6 +16,7 @@ O endpoint usa a mesma protecao por chave da API principal. Envie a chave em `X-
 
 ## Rotas
 
+- `GET /`: abre a tela administrativa de usuarios.
 - `GET /usuarios.php`: lista usuarios.
 - `POST /usuarios.php`: cria usuario.
 - `PUT /usuarios.php?id=ID`: atualiza usuario.

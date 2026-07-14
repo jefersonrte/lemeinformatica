@@ -1,4 +1,5 @@
 Options -Indexes
+DirectoryIndex index.php
 
 <FilesMatch "^(config|database|http|init)\.php$">
     Require all denied
