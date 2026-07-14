@@ -1,6 +1,13 @@
 <?php
 require_once __DIR__ . '/includes/init.php';
 
+if (($GLOBALS['API_AUTH_MODE'] ?? '') === 'session') {
+    $sessionUser = current_api_user();
+    if ($sessionUser === null || $sessionUser['perfil'] !== 'admin') {
+        json_response(['ok' => false, 'erro' => 'Apenas administradores podem gerenciar usuarios.'], 403);
+    }
+}
+
 try {
     $method = method_override();
 
@@ -32,17 +39,9 @@ try {
         ], 500);
     }
 
-    json_response([
-        'ok' => false,
-        'erro' => 'Erro ao salvar usuario.',
-        'detalhe' => $e->getMessage()
-    ], 500);
+    json_response(['ok' => false, 'erro' => 'Erro ao salvar usuario.'], 500);
 } catch (Throwable $e) {
-    json_response([
-        'ok' => false,
-        'erro' => 'Erro interno ao gerenciar usuarios.',
-        'detalhe' => $e->getMessage()
-    ], 500);
+    json_response(['ok' => false, 'erro' => 'Erro interno ao gerenciar usuarios.'], 500);
 }
 
 function api_usuario_clean_text(mixed $value): string

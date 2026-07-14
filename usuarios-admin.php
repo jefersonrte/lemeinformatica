@@ -1,3 +1,11 @@
+<?php
+require_once __DIR__ . '/includes/config.php';
+require_once __DIR__ . '/includes/session.php';
+
+apply_page_security_headers();
+$currentUser = require_api_page_login(['admin']);
+$csrfToken = api_csrf_token();
+?>
 <!doctype html>
 <html lang="pt-BR">
 <head>
@@ -122,13 +130,6 @@
             outline: 3px solid rgba(36, 48, 163, .14);
         }
 
-        .key-row {
-            align-items: end;
-            display: grid;
-            gap: 10px;
-            grid-template-columns: 1fr auto;
-        }
-
         .check-row {
             align-items: center;
             display: flex;
@@ -161,6 +162,21 @@
 
         .btn.danger {
             background: #8b1a1a;
+        }
+
+        .account-actions {
+            align-items: flex-end;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .account-actions p {
+            margin: 0;
+        }
+
+        .account-actions form {
+            margin: 0;
         }
 
         .actions,
@@ -236,9 +252,12 @@
                 flex-direction: column;
             }
 
-            .form-grid,
-            .key-row {
+            .form-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .account-actions {
+                align-items: flex-start;
             }
         }
     </style>
@@ -249,27 +268,16 @@
             <div>
                 <p class="eyebrow">API principal</p>
                 <h1>Usuarios</h1>
-                <p>Gerenciamento protegido pela chave da API.</p>
+                <p>Gerenciamento de acessos dos dois sistemas.</p>
+            </div>
+            <div class="account-actions">
+                <p><?= htmlspecialchars($currentUser['nome'], ENT_QUOTES, 'UTF-8') ?></p>
+                <form method="post" action="logout.php">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                    <button class="btn ghost" type="submit">Sair</button>
+                </form>
             </div>
         </header>
-
-        <section class="panel">
-            <div class="panel-header">
-                <div>
-                    <h2>Acesso</h2>
-                    <p>Use a mesma chave configurada em <strong>includes/config.php</strong>.</p>
-                </div>
-                <p id="status" class="muted">Aguardando chave.</p>
-            </div>
-
-            <div class="key-row">
-                <label>
-                    X-API-KEY
-                    <input id="apiKey" type="password" autocomplete="off" placeholder="Cole a chave da API">
-                </label>
-                <button id="btnConectar" class="btn" type="button">Conectar</button>
-            </div>
-        </section>
 
         <section class="panel">
             <div class="panel-header">
@@ -284,15 +292,15 @@
                 <input type="hidden" id="usuarioId">
                 <label>
                     Nome
-                    <input id="usuarioNome" type="text" maxlength="100" required disabled>
+                    <input id="usuarioNome" type="text" maxlength="100" required>
                 </label>
                 <label>
                     E-mail
-                    <input id="usuarioEmail" type="email" maxlength="150" required disabled>
+                    <input id="usuarioEmail" type="email" maxlength="150" required>
                 </label>
                 <label>
                     Perfil
-                    <select id="usuarioPerfil" required disabled>
+                    <select id="usuarioPerfil" required>
                         <option value="admin">Admin</option>
                         <option value="operador">Operador</option>
                         <option value="visualizador">Visualizador</option>
@@ -300,15 +308,15 @@
                 </label>
                 <label>
                     Senha
-                    <input id="usuarioSenha" type="password" minlength="8" autocomplete="new-password" placeholder="Minimo 8 caracteres" disabled>
+                    <input id="usuarioSenha" type="password" minlength="8" autocomplete="new-password" placeholder="Minimo 8 caracteres">
                 </label>
                 <label class="check-row">
-                    <input id="usuarioAtivo" type="checkbox" checked disabled>
+                    <input id="usuarioAtivo" type="checkbox" checked>
                     Ativo
                 </label>
                 <div class="form-actions">
-                    <button id="btnSalvarUsuario" class="btn" type="submit" disabled>Criar usuario</button>
-                    <button id="btnCancelarUsuario" class="btn ghost" type="button" disabled>Cancelar edicao</button>
+                    <button id="btnSalvarUsuario" class="btn" type="submit">Criar usuario</button>
+                    <button id="btnCancelarUsuario" class="btn ghost" type="button">Cancelar edicao</button>
                 </div>
             </form>
 
@@ -325,7 +333,7 @@
                         </tr>
                     </thead>
                     <tbody id="tabelaUsuarios">
-                        <tr><td colspan="6">Informe a chave da API para carregar usuarios.</td></tr>
+                        <tr><td colspan="6">Carregando usuarios...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -333,9 +341,7 @@
     </div>
 
     <script>
-        const apiKeyInput = document.getElementById('apiKey');
-        const btnConectar = document.getElementById('btnConectar');
-        const statusEl = document.getElementById('status');
+        const csrfToken = <?= json_encode($csrfToken, JSON_UNESCAPED_SLASHES) ?>;
         const usuarioStatus = document.getElementById('usuarioStatus');
         const formUsuario = document.getElementById('formUsuario');
         const tabelaUsuarios = document.getElementById('tabelaUsuarios');
@@ -347,9 +353,6 @@
         const usuarioAtivo = document.getElementById('usuarioAtivo');
         const btnSalvarUsuario = document.getElementById('btnSalvarUsuario');
         const btnCancelarUsuario = document.getElementById('btnCancelarUsuario');
-        const formFields = [usuarioNome, usuarioEmail, usuarioPerfil, usuarioSenha, usuarioAtivo, btnSalvarUsuario, btnCancelarUsuario];
-
-        let apiKey = '';
         let usuarios = [];
 
         function escapeHtml(value) {
@@ -369,7 +372,7 @@
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
-                    'X-API-KEY': apiKey,
+                    'X-CSRF-TOKEN': csrfToken,
                     ...(options.headers || {})
                 }
             });
@@ -386,12 +389,6 @@
         function setStatus(element, message, type = '') {
             element.textContent = message;
             element.className = type ? `message-${type}` : 'muted';
-        }
-
-        function setFormEnabled(enabled) {
-            formFields.forEach(field => {
-                field.disabled = !enabled;
-            });
         }
 
         function usuarioEstaAtivo(usuario) {
@@ -498,27 +495,6 @@
             }
         }
 
-        btnConectar.addEventListener('click', async () => {
-            apiKey = apiKeyInput.value.trim();
-
-            if (!apiKey) {
-                setStatus(statusEl, 'Informe a chave da API.', 'error');
-                return;
-            }
-
-            setStatus(statusEl, 'Conectando...');
-
-            try {
-                await carregarUsuarios();
-                setFormEnabled(true);
-                limparFormularioUsuario();
-                setStatus(statusEl, 'Conectado.', 'ok');
-            } catch (error) {
-                setFormEnabled(false);
-                setStatus(statusEl, error.message, 'error');
-            }
-        });
-
         formUsuario.addEventListener('submit', async (event) => {
             event.preventDefault();
 
@@ -581,6 +557,12 @@
         });
 
         btnCancelarUsuario.addEventListener('click', limparFormularioUsuario);
+
+        limparFormularioUsuario();
+        carregarUsuarios().catch(error => {
+            setStatus(usuarioStatus, error.message, 'error');
+            tabelaUsuarios.innerHTML = '<tr><td colspan="6">Nao foi possivel carregar os usuarios.</td></tr>';
+        });
     </script>
 </body>
 </html>

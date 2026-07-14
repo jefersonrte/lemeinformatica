@@ -9,7 +9,7 @@ function apply_cors(): void
     }
 
     header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, X-API-KEY, Authorization');
+    header('Access-Control-Allow-Headers: Content-Type, X-API-KEY, X-CSRF-TOKEN, Authorization');
     header('Access-Control-Max-Age: 86400');
 }
 
@@ -37,8 +37,6 @@ function api_key_from_request(): string
 
 function require_api_key(): void
 {
-    $receivedKey = api_key_from_request();
-
     if (API_KEY === '' || API_KEY === 'TROQUE_ESTA_CHAVE_API_FORTE') {
         json_response([
             'ok' => false,
@@ -46,11 +44,49 @@ function require_api_key(): void
         ], 500);
     }
 
-    if ($receivedKey === '' || !hash_equals(API_KEY, $receivedKey)) {
+    if (!has_valid_api_key()) {
         json_response([
             'ok' => false,
             'erro' => 'Nao autorizado. Informe a chave X-API-KEY correta.'
         ], 401);
+    }
+}
+
+function has_valid_api_key(): bool
+{
+    $receivedKey = api_key_from_request();
+    return API_KEY !== ''
+        && API_KEY !== 'TROQUE_ESTA_CHAVE_API_FORTE'
+        && $receivedKey !== ''
+        && hash_equals(API_KEY, $receivedKey);
+}
+
+function require_api_or_session(): string
+{
+    if (has_valid_api_key()) {
+        return 'api_key';
+    }
+
+    if (function_exists('current_api_user') && current_api_user() !== null) {
+        return 'session';
+    }
+
+    json_response(['ok' => false, 'erro' => 'Usuario nao autenticado.'], 401);
+}
+
+function require_session_csrf_for_state_change(string $authMode): void
+{
+    $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+    if ($authMode !== 'session' || !in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+        return;
+    }
+
+    $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? null;
+    if (!function_exists('validate_api_csrf') || !validate_api_csrf($token)) {
+        json_response([
+            'ok' => false,
+            'erro' => 'Sessao de seguranca expirada. Atualize a pagina e tente novamente.'
+        ], 419);
     }
 }
 
