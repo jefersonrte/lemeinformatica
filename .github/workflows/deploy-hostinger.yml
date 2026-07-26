@@ -86,7 +86,7 @@ jobs:
 
           while IFS= read -r -d '' file; do
             case "$file" in
-              .github/*|.gitignore|README.md|README_USUARIOS.md|backend/README.md|frontend/README.md|pet/README.md|pet/CHANGELOG.md|pet/docs/*|sql/*)
+              .github/*|.gitignore|README.md|README_USUARIOS.md|backend/README.md|frontend/README.md|pet/README.md|pet/CHANGELOG.md|pet/VERSION|pet/docs/*|sql/*)
                 continue
                 ;;
               includes/config.php|includes/database.runtime.php)
