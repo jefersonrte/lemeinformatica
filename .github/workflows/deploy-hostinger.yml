@@ -38,6 +38,13 @@ jobs:
           test -n "$FTP_USERNAME"
           test -n "$FTP_PASSWORD"
 
+      - name: Preparar cliente FTPS
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends lftp
+
       - name: Publicar arquivos rastreados
         env:
           FTP_SERVER: ${{ secrets.HOSTINGER_FTP_SERVER }}
@@ -47,7 +54,9 @@ jobs:
         run: |
           set -Eeuo pipefail
 
-          uploaded=0
+          staging="$RUNNER_TEMP/lemeinformatica-deploy"
+          mkdir -p "$staging"
+          selected=0
 
           while IFS= read -r -d '' file; do
             case "$file" in
@@ -60,44 +69,28 @@ jobs:
                 ;;
             esac
 
-            curl \
-              --fail \
-              --silent \
-              --show-error \
-              --retry 3 \
-              --retry-all-errors \
-              --retry-delay 2 \
-              --connect-timeout 20 \
-              --max-time 180 \
-              --ssl-reqd \
-              --ftp-create-dirs \
-              --user "$FTP_USERNAME:$FTP_PASSWORD" \
-              --upload-file "$file" \
-              "ftp://$FTP_SERVER/public_html/$file"
-
-            uploaded=$((uploaded + 1))
+            mkdir -p "$staging/$(dirname "$file")"
+            cp "$file" "$staging/$file"
+            selected=$((selected + 1))
           done < <(git ls-files -z)
 
-          echo "$uploaded arquivos publicados com FTPS."
+          cd "$staging"
 
-      - name: Verificar versao publicada
-        env:
-          FTP_SERVER: ${{ secrets.HOSTINGER_FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.HOSTINGER_FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-        shell: bash
-        run: |
-          set -Eeuo pipefail
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "ftp://$FTP_SERVER" <<'LFTP_COMMANDS'
+          set cmd:fail-exit true
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate true
+          set net:max-retries 3
+          set net:timeout 30
+          set net:reconnect-interval-base 3
+          mirror --reverse --verbose --no-perms --no-umask --parallel=1 ./ public_html/
+          get public_html/pet/VERSION -o .published-version
+          bye
+          LFTP_COMMANDS
 
           expected_version="$(tr -d '\r\n' < pet/VERSION)"
-          published_version="$(curl \
-            --fail \
-            --silent \
-            --show-error \
-            --retry 3 \
-            --ssl-reqd \
-            --user "$FTP_USERNAME:$FTP_PASSWORD" \
-            "ftp://$FTP_SERVER/public_html/pet/VERSION" | tr -d '\r\n')"
+          published_version="$(tr -d '\r\n' < .published-version)"
 
           test "$published_version" = "$expected_version"
-          echo "Versao $published_version confirmada em producao."
+          echo "$selected arquivos sincronizados. Versao $published_version confirmada."

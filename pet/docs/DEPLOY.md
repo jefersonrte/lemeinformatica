@@ -15,7 +15,8 @@
 3. Aguardar o workflow `Leme Pet - CI` validar PHP, JavaScript e arquivos
    privados.
 4. Revisar e fazer merge na branch `main`.
-5. O workflow `Deploy Hostinger` publica os arquivos rastreados por FTPS.
+5. O workflow `Deploy Hostinger` publica os arquivos rastreados em uma unica
+   sessao FTPS persistente.
 6. Entrar como administrador e executar `/pet/install.php` quando a versao
    contiver uma nova migracao.
 7. Executar o roteiro da versao em `docs/versions/`.
