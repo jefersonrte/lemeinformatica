@@ -1,7 +1,10 @@
 <?php
 declare(strict_types=1);
 
-define('PET_VERSION', trim((string) file_get_contents(dirname(__DIR__) . '/VERSION')));
+$petVersionPath = dirname(__DIR__) . '/VERSION';
+$petVersionContents = is_file($petVersionPath) ? file_get_contents($petVersionPath) : false;
+$petVersion = is_string($petVersionContents) ? trim($petVersionContents) : '';
+define('PET_VERSION', $petVersion !== '' ? $petVersion : '1.0.1');
 define('PET_ROOT', dirname(__DIR__));
 define('PET_UPLOAD_ROOT', PET_ROOT . '/uploads');
 define('PET_MAX_UPLOAD_BYTES', 5 * 1024 * 1024);
