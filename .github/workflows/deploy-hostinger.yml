@@ -159,12 +159,25 @@ jobs:
           set net:timeout 30
           set net:reconnect-interval-base 3
           mirror --reverse --transfer-all --overwrite --verbose --no-perms --no-umask --parallel=1 ./ /
-          get /pet/VERSION -o .published-version
           bye
           LFTP_COMMANDS
 
           expected_version="$(tr -d '\r\n' < "$GITHUB_WORKSPACE/pet/VERSION")"
-          published_version="$(tr -d '\r\n' < .published-version)"
+          published_version=""
+
+          for attempt in $(seq 1 10); do
+            if curl --silent --show-error --fail --max-time 30 \
+              -H "X-API-KEY: $APP_API_KEY" \
+              https://lemeinformatica.com.br/health.php \
+              -o .health.json; then
+              published_version="$(php -r '$data = json_decode(file_get_contents(".health.json"), true); echo is_array($data) && isset($data["versao_pet"]) ? $data["versao_pet"] : "";' || true)"
+            fi
+
+            if [[ "$published_version" == "$expected_version" ]]; then
+              break
+            fi
+            sleep 3
+          done
 
           test "$published_version" = "$expected_version"
           echo "$selected arquivos sincronizados. Versao $published_version confirmada."
