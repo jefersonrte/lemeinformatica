@@ -1,4 +1,5 @@
 <?php
+// Defaults keep older private server configurations compatible.
 if (!defined('LOGIN_MAX_ATTEMPTS')) {
     define('LOGIN_MAX_ATTEMPTS', 5);
 }

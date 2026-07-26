@@ -25,6 +25,8 @@ jobs:
     steps:
       - name: Baixar versao aprovada
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
 
       - name: Validar configuracao protegida
         env:
@@ -49,6 +51,7 @@ jobs:
         env:
           FTP_SERVER: ${{ secrets.HOSTINGER_FTP_SERVER }}
           FTP_TLS_HOST: srv1543.hstgr.io
+          BEFORE_SHA: ${{ github.event.before }}
           FTP_USERNAME: ${{ secrets.HOSTINGER_FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
         shell: bash
@@ -56,8 +59,15 @@ jobs:
           set -Eeuo pipefail
 
           staging="$RUNNER_TEMP/lemeinformatica-deploy"
+          file_list="$RUNNER_TEMP/lemeinformatica-files"
           mkdir -p "$staging"
           selected=0
+
+          if [[ "$GITHUB_EVENT_NAME" == "push" && -n "$BEFORE_SHA" && "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]]; then
+            git diff --name-only -z --diff-filter=ACMRT "$BEFORE_SHA" "$GITHUB_SHA" > "$file_list"
+          else
+            git ls-files -z > "$file_list"
+          fi
 
           while IFS= read -r -d '' file; do
             case "$file" in
@@ -73,7 +83,7 @@ jobs:
             mkdir -p "$staging/$(dirname "$file")"
             cp "$file" "$staging/$file"
             selected=$((selected + 1))
-          done < <(git ls-files -z)
+          done < "$file_list"
 
           cd "$staging"
 
@@ -93,7 +103,7 @@ jobs:
           bye
           LFTP_COMMANDS
 
-          expected_version="$(tr -d '\r\n' < pet/VERSION)"
+          expected_version="$(tr -d '\r\n' < "$GITHUB_WORKSPACE/pet/VERSION")"
           published_version="$(tr -d '\r\n' < .published-version)"
 
           test "$published_version" = "$expected_version"
