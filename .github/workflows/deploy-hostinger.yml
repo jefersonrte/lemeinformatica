@@ -48,6 +48,7 @@ jobs:
       - name: Publicar arquivos rastreados
         env:
           FTP_SERVER: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          FTP_TLS_HOST: srv1543.hstgr.io
           FTP_USERNAME: ${{ secrets.HOSTINGER_FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
         shell: bash
@@ -76,7 +77,10 @@ jobs:
 
           cd "$staging"
 
-          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "ftp://$FTP_SERVER" <<'LFTP_COMMANDS'
+          printf '%s %s\n' "$FTP_SERVER" "$FTP_TLS_HOST" |
+            sudo tee -a /etc/hosts >/dev/null
+
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "ftp://$FTP_TLS_HOST" <<'LFTP_COMMANDS'
           set cmd:fail-exit true
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
