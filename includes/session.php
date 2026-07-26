@@ -1,4 +1,5 @@
 <?php
+// Defaults keep older private server configurations compatible.
 if (!defined('SESSION_NAME')) {
     define('SESSION_NAME', 'LEME_API_SESSAO');
 }
