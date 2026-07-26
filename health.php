@@ -13,9 +13,7 @@ if (!defined('API_KEY') || API_KEY === '' || !hash_equals((string) API_KEY, $pro
     exit;
 }
 
-$petVersionPath = __DIR__ . '/pet/VERSION';
-$petVersionContents = is_file($petVersionPath) ? file_get_contents($petVersionPath) : false;
-$petVersion = is_string($petVersionContents) ? trim($petVersionContents) : '';
+$petVersion = '1.0.1';
 
 $result = [
     'ok' => true,
