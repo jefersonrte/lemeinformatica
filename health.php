@@ -13,12 +13,17 @@ if (!defined('API_KEY') || API_KEY === '' || !hash_equals((string) API_KEY, $pro
     exit;
 }
 
+$petVersionPath = __DIR__ . '/pet/VERSION';
+$petVersionContents = is_file($petVersionPath) ? file_get_contents($petVersionPath) : false;
+$petVersion = is_string($petVersionContents) ? trim($petVersionContents) : '';
+
 $result = [
     'ok' => true,
     'versao_php' => PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION,
     'configuracao' => true,
     'sessao' => false,
     'banco' => false,
+    'versao_pet' => $petVersion !== '' ? $petVersion : null,
 ];
 
 try {
