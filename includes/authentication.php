@@ -1,4 +1,11 @@
 <?php
+if (!defined('LOGIN_MAX_ATTEMPTS')) {
+    define('LOGIN_MAX_ATTEMPTS', 5);
+}
+if (!defined('LOGIN_LOCK_MINUTES')) {
+    define('LOGIN_LOCK_MINUTES', 15);
+}
+
 function auth_identifier(string $email): string
 {
     $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
