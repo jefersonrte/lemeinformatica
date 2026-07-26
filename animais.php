@@ -3,6 +3,11 @@ require_once __DIR__ . '/includes/init.php';
 
 try {
     $method = method_override();
+    require_session_roles_for_state_change(
+        (string) ($GLOBALS['API_AUTH_MODE'] ?? ''),
+        $method,
+        ['admin', 'operador']
+    );
 
     switch ($method) {
         case 'GET':
@@ -23,8 +28,8 @@ try {
 } catch (Throwable $e) {
     json_response([
         'ok' => false,
-        'erro' => 'Erro interno na API.',
-        'detalhe' => $e->getMessage()
+        'codigo' => 'API_BANCO_INDISPONIVEL',
+        'erro' => 'Nao foi possivel consultar o banco principal agora.'
     ], 500);
 }
 

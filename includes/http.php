@@ -13,7 +13,7 @@ function apply_cors(): void
     header('Access-Control-Max-Age: 86400');
 }
 
-function json_response(array $payload, int $status = 200): never
+function json_response(array $payload, int $status = 200): void
 {
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');
@@ -37,9 +37,10 @@ function api_key_from_request(): string
 
 function require_api_key(): void
 {
-    if (API_KEY === '' || API_KEY === 'TROQUE_ESTA_CHAVE_API_FORTE') {
+    if (!api_key_is_configured()) {
         json_response([
             'ok' => false,
+            'codigo' => 'API_NAO_CONFIGURADA',
             'erro' => 'API_KEY ainda nao foi configurada no servidor principal.'
         ], 500);
     }
@@ -47,16 +48,27 @@ function require_api_key(): void
     if (!has_valid_api_key()) {
         json_response([
             'ok' => false,
+            'codigo' => 'API_KEY_INVALIDA',
             'erro' => 'Nao autorizado. Informe a chave X-API-KEY correta.'
         ], 401);
     }
 }
 
+function api_key_is_configured(): bool
+{
+    return API_KEY !== ''
+        && !in_array(API_KEY, [
+            'TROQUE_ESTA_CHAVE_API_FORTE',
+            'COLOQUE_A_CHAVE_FORTE_DA_API_AQUI',
+            'COLOQUE_A_CHAVE_DA_API_AQUI',
+            'CHANGE_ME'
+        ], true);
+}
+
 function has_valid_api_key(): bool
 {
     $receivedKey = api_key_from_request();
-    return API_KEY !== ''
-        && API_KEY !== 'TROQUE_ESTA_CHAVE_API_FORTE'
+    return api_key_is_configured()
         && $receivedKey !== ''
         && hash_equals(API_KEY, $receivedKey);
 }
@@ -90,6 +102,21 @@ function require_session_csrf_for_state_change(string $authMode): void
     }
 }
 
+function require_session_roles_for_state_change(string $authMode, string $method, array $allowedRoles): void
+{
+    if ($authMode !== 'session' || !in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true)) {
+        return;
+    }
+
+    $user = function_exists('current_api_user') ? current_api_user() : null;
+    if ($user === null || !in_array((string) $user['perfil'], $allowedRoles, true)) {
+        json_response([
+            'ok' => false,
+            'erro' => 'Seu perfil permite apenas visualizar o dashboard.'
+        ], 403);
+    }
+}
+
 function request_json(): array
 {
     $raw = file_get_contents('php://input');
@@ -109,12 +136,12 @@ function request_json(): array
     return $data;
 }
 
-function clean_text(mixed $value): string
+function clean_text($value): string
 {
     return trim((string) $value);
 }
 
-function positive_int(mixed $value, int $default, int $max): int
+function positive_int($value, int $default, int $max): int
 {
     $number = filter_var($value, FILTER_VALIDATE_INT);
     if ($number === false || $number < 1) {

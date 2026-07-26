@@ -22,7 +22,7 @@ try {
 } catch (Throwable $e) {
     json_response([
         'ok' => false,
-        'erro' => 'Erro ao gerar dados para Power BI.',
-        'detalhe' => $e->getMessage()
+        'codigo' => 'API_BANCO_INDISPONIVEL',
+        'erro' => 'Nao foi possivel consultar o banco principal agora.'
     ], 500);
 }

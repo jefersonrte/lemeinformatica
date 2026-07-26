@@ -1,0 +1,57 @@
+name: Pet CI
+
+on:
+  push:
+    branches:
+      - main
+      - "feature/pet-*"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  php-lint:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php:
+          - "8.2"
+          - "8.4"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysqli, fileinfo, json
+          coverage: none
+          tools: none
+
+      - name: Lint PHP
+        shell: bash
+        run: find . -type f -name "*.php" -not -path "./.git/*" -print0 | xargs -0 -n1 php -l
+
+  frontend:
+    name: Frontend and repository safety
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Check JavaScript
+        run: node --check pet/frontend/js/app.js
+
+      - name: Reject runtime secrets
+        shell: bash
+        run: |
+          if git ls-files | grep -E '(^|/)(config\.php|database\.runtime\.php|\.env)$'; then
+            echo "Runtime secret file is tracked."
+            exit 1
+          fi
