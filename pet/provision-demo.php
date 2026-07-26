@@ -85,8 +85,13 @@ try {
     $conn = db();
     $stage = 'migracao_arquivo';
     $migrationPath = __DIR__ . '/sql/migrations/001_v1_0_0_pet_core.sql';
-    $migrationSql = file_get_contents($migrationPath);
+    $migrationSql = is_file($migrationPath) ? file_get_contents($migrationPath) : false;
     if (!is_string($migrationSql) || trim($migrationSql) === '') {
+        $stage = 'migracao_fallback';
+        require_once __DIR__ . '/includes/schema.php';
+        $migrationSql = pet_schema_sql();
+    }
+    if (trim($migrationSql) === '') {
         throw new RuntimeException('Migracao Pet indisponivel.');
     }
 
