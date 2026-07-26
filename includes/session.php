@@ -1,4 +1,17 @@
 <?php
+if (!defined('SESSION_NAME')) {
+    define('SESSION_NAME', 'LEME_API_SESSAO');
+}
+if (!defined('CSRF_SESSION_KEY')) {
+    define('CSRF_SESSION_KEY', 'csrf_token');
+}
+if (!defined('SESSION_IDLE_LIMIT_SECONDS')) {
+    define('SESSION_IDLE_LIMIT_SECONDS', 1800);
+}
+if (!defined('SESSION_REGENERATE_SECONDS')) {
+    define('SESSION_REGENERATE_SECONDS', 600);
+}
+
 function apply_page_security_headers(): void
 {
     header('X-Frame-Options: SAMEORIGIN');
