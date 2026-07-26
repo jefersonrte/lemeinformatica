@@ -33,12 +33,22 @@ jobs:
           FTP_SERVER: ${{ secrets.HOSTINGER_FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.HOSTINGER_FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          APP_DB_HOST: ${{ secrets.APP_DB_HOST }}
+          APP_DB_NAME: ${{ secrets.APP_DB_NAME }}
+          APP_DB_USERNAME: ${{ secrets.APP_DB_USERNAME }}
+          APP_DB_PASSWORD: ${{ secrets.APP_DB_PASSWORD }}
+          APP_API_KEY: ${{ secrets.APP_API_KEY }}
         shell: bash
         run: |
           set -Eeuo pipefail
           test -n "$FTP_SERVER"
           test -n "$FTP_USERNAME"
           test -n "$FTP_PASSWORD"
+          test -n "$APP_DB_HOST"
+          test -n "$APP_DB_NAME"
+          test -n "$APP_DB_USERNAME"
+          test -n "$APP_DB_PASSWORD"
+          test -n "$APP_API_KEY"
 
       - name: Preparar cliente FTPS
         shell: bash
@@ -54,6 +64,11 @@ jobs:
           BEFORE_SHA: ${{ github.event.before }}
           FTP_USERNAME: ${{ secrets.HOSTINGER_FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          APP_DB_HOST: ${{ secrets.APP_DB_HOST }}
+          APP_DB_NAME: ${{ secrets.APP_DB_NAME }}
+          APP_DB_USERNAME: ${{ secrets.APP_DB_USERNAME }}
+          APP_DB_PASSWORD: ${{ secrets.APP_DB_PASSWORD }}
+          APP_API_KEY: ${{ secrets.APP_API_KEY }}
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -85,6 +100,51 @@ jobs:
             selected=$((selected + 1))
           done < "$file_list"
 
+          mkdir -p "$staging/includes"
+          export CONFIG_TARGET="$staging/includes/config.php"
+          php <<'PHP_CONFIG'
+          <?php
+          $secretConstants = [
+              'DB_HOST' => getenv('APP_DB_HOST'),
+              'DB_NAME' => getenv('APP_DB_NAME'),
+              'DB_USER' => getenv('APP_DB_USERNAME'),
+              'DB_PASS' => getenv('APP_DB_PASSWORD'),
+              'API_KEY' => getenv('APP_API_KEY'),
+          ];
+
+          if (in_array(false, $secretConstants, true)) {
+              fwrite(STDERR, "Configuracao privada incompleta.\n");
+              exit(1);
+          }
+
+          $content = "<?php\n";
+          foreach ($secretConstants as $name => $value) {
+              $content .= 'const ' . $name . ' = ' . var_export($value, true) . ";\n";
+          }
+
+          $content .= <<<'PHP_DEFAULTS'
+
+          const SESSION_NAME = 'LEME_API_SESSAO';
+          const CSRF_SESSION_KEY = 'csrf_token';
+          const LOGIN_MAX_ATTEMPTS = 5;
+          const LOGIN_LOCK_MINUTES = 15;
+          const SESSION_IDLE_LIMIT_SECONDS = 1800;
+          const SESSION_REGENERATE_SECONDS = 600;
+          const ALLOWED_ORIGINS = [
+              'https://lemesolucoesemti.com.br',
+              'https://www.lemesolucoesemti.com.br',
+          ];
+          PHP_DEFAULTS;
+
+          $target = getenv('CONFIG_TARGET');
+          if (!is_string($target) || file_put_contents($target, $content) === false) {
+              fwrite(STDERR, "Falha ao gerar configuracao privada.\n");
+              exit(1);
+          }
+          chmod($target, 0600);
+          PHP_CONFIG
+          selected=$((selected + 1))
+
           cd "$staging"
 
           printf '%s %s\n' "$FTP_SERVER" "$FTP_TLS_HOST" |
@@ -98,8 +158,8 @@ jobs:
           set net:max-retries 3
           set net:timeout 30
           set net:reconnect-interval-base 3
-          mirror --reverse --transfer-all --overwrite --verbose --no-perms --no-umask --parallel=1 ./ /public_html
-          get /public_html/pet/VERSION -o .published-version
+          mirror --reverse --transfer-all --overwrite --verbose --no-perms --no-umask --parallel=1 ./ .
+          get pet/VERSION -o .published-version
           bye
           LFTP_COMMANDS
 
