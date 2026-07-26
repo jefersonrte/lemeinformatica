@@ -22,7 +22,11 @@ $email = strtolower(trim((string) ($input['email'] ?? '')));
 $password = (string) ($input['senha'] ?? '');
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL) || $password === '') {
-    json_response(['ok' => false, 'erro' => 'E-mail ou senha incorretos.'], 401);
+    json_response([
+        'ok' => false,
+        'codigo' => 'CREDENCIAIS_INVALIDAS',
+        'erro' => 'E-mail ou senha incorretos.'
+    ], 401);
 }
 
 try {
@@ -31,18 +35,24 @@ try {
     if ($result['status'] === 'blocked') {
         json_response([
             'ok' => false,
+            'codigo' => 'LOGIN_BLOQUEADO',
             'erro' => 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'
         ], 429);
     }
 
     if ($result['status'] !== 'success') {
-        json_response(['ok' => false, 'erro' => 'E-mail ou senha incorretos.'], 401);
+        json_response([
+            'ok' => false,
+            'codigo' => 'CREDENCIAIS_INVALIDAS',
+            'erro' => 'E-mail ou senha incorretos.'
+        ], 401);
     }
 
     json_response(['ok' => true, 'usuario' => $result['user']]);
 } catch (Throwable $e) {
     json_response([
         'ok' => false,
+        'codigo' => 'API_BANCO_INDISPONIVEL',
         'erro' => 'Nao foi possivel validar o acesso agora. Tente novamente em instantes.'
     ], 503);
 }

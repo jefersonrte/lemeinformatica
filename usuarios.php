@@ -44,17 +44,17 @@ try {
     json_response(['ok' => false, 'erro' => 'Erro interno ao gerenciar usuarios.'], 500);
 }
 
-function api_usuario_clean_text(mixed $value): string
+function api_usuario_clean_text($value): string
 {
     return trim((string) $value);
 }
 
-function api_usuario_clean_email(mixed $value): string
+function api_usuario_clean_email($value): string
 {
     return strtolower(trim((string) $value));
 }
 
-function api_usuario_bool(mixed $value, bool $default = true): int
+function api_usuario_bool($value, bool $default = true): int
 {
     if ($value === null) {
         return $default ? 1 : 0;
