@@ -1,0 +1,103 @@
+name: Deploy Hostinger
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hostinger-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publicar em producao
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://lemeinformatica.com.br/pet/
+
+    steps:
+      - name: Baixar versao aprovada
+        uses: actions/checkout@v6
+
+      - name: Validar configuracao protegida
+        env:
+          FTP_SERVER: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -n "$FTP_SERVER"
+          test -n "$FTP_USERNAME"
+          test -n "$FTP_PASSWORD"
+
+      - name: Publicar arquivos rastreados
+        env:
+          FTP_SERVER: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          uploaded=0
+
+          while IFS= read -r -d '' file; do
+            case "$file" in
+              .github/*|.gitignore|README.md|README_USUARIOS.md|backend/README.md|frontend/README.md|pet/README.md|pet/CHANGELOG.md|pet/docs/*|sql/*)
+                continue
+                ;;
+              includes/config.php|includes/database.runtime.php)
+                echo "Arquivo privado nao pode fazer parte do deploy."
+                exit 1
+                ;;
+            esac
+
+            curl \
+              --fail \
+              --silent \
+              --show-error \
+              --retry 3 \
+              --retry-all-errors \
+              --retry-delay 2 \
+              --connect-timeout 20 \
+              --max-time 180 \
+              --ssl-reqd \
+              --ftp-create-dirs \
+              --user "$FTP_USERNAME:$FTP_PASSWORD" \
+              --upload-file "$file" \
+              "ftp://$FTP_SERVER/public_html/$file"
+
+            uploaded=$((uploaded + 1))
+          done < <(git ls-files -z)
+
+          echo "$uploaded arquivos publicados com FTPS."
+
+      - name: Verificar versao publicada
+        env:
+          FTP_SERVER: ${{ secrets.HOSTINGER_FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          expected_version="$(tr -d '\r\n' < pet/VERSION)"
+          published_version="$(curl \
+            --fail \
+            --silent \
+            --show-error \
+            --retry 3 \
+            --ssl-reqd \
+            --user "$FTP_USERNAME:$FTP_PASSWORD" \
+            "ftp://$FTP_SERVER/public_html/pet/VERSION" | tr -d '\r\n')"
+
+          test "$published_version" = "$expected_version"
+          echo "Versao $published_version confirmada em producao."
