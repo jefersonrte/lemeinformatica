@@ -10,14 +10,40 @@
 
 ## Fluxo pelo GitHub
 
-1. Criar uma branch `feature/pet-v1`.
-2. Publicar os arquivos do modulo e as alteracoes de login.
-3. Revisar o diff para garantir que nenhum `config.php` foi incluido.
-4. Fazer merge na branch de producao.
-5. Aguardar a implantacao da Hostinger.
-6. Entrar como administrador e executar `/pet/install.php`.
-7. Executar o roteiro em `docs/versions/1.0.0.md`.
-8. Criar a tag `pet-v1.0.0`.
+1. Criar uma branch de funcionalidade.
+2. Publicar os arquivos e abrir um pull request.
+3. Aguardar o workflow `Leme Pet - CI` validar PHP, JavaScript e arquivos
+   privados.
+4. Revisar e fazer merge na branch `main`.
+5. O workflow `Deploy Hostinger` publica os arquivos rastreados por FTPS.
+6. Entrar como administrador e executar `/pet/install.php` quando a versao
+   contiver uma nova migracao.
+7. Executar o roteiro da versao em `docs/versions/`.
+8. Criar uma tag anotada, por exemplo `pet-v1.0.0`.
+
+O deploy tambem pode ser iniciado manualmente em `Actions > Deploy Hostinger >
+Run workflow`.
+
+## Secrets do GitHub
+
+Os seguintes Repository Secrets devem existir em `Settings > Secrets and
+variables > Actions`:
+
+- `HOSTINGER_FTP_SERVER`;
+- `HOSTINGER_FTP_USERNAME`;
+- `HOSTINGER_FTP_PASSWORD`.
+
+Os valores nunca devem ser gravados em arquivos, commits, logs ou documentacao.
+
+## Escopo da publicacao
+
+O workflow publica somente arquivos rastreados pelo Git e nao apaga arquivos
+remotos. Documentacao Markdown, workflows, scripts SQL da raiz e metadados do
+repositorio nao sao enviados ao servidor.
+
+Os arquivos privados `includes/config.php` e
+`includes/database.runtime.php` sao preservados no servidor. O workflow
+interrompe a publicacao caso um deles seja rastreado por engano.
 
 ## Arquivos fora do modulo
 
