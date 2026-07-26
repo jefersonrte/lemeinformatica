@@ -78,17 +78,21 @@ if (!defined('API_KEY') || API_KEY === '' || !hash_equals((string) API_KEY, $pro
 
 $conn = null;
 $transactionStarted = false;
+$stage = 'inicializacao';
 
 try {
+    $stage = 'conexao';
     $conn = db();
+    $stage = 'migracao_arquivo';
     $migrationPath = __DIR__ . '/sql/migrations/001_v1_0_0_pet_core.sql';
     $migrationSql = file_get_contents($migrationPath);
     if (!is_string($migrationSql) || trim($migrationSql) === '') {
         throw new RuntimeException('Migracao Pet indisponivel.');
     }
 
+    $stage = 'migracao_execucao';
     if (!$conn->multi_query($migrationSql)) {
-        throw new RuntimeException('Falha ao iniciar a migracao Pet.');
+        throw new mysqli_sql_exception($conn->error, $conn->errno);
     }
     do {
         if ($result = $conn->store_result()) {
@@ -99,9 +103,11 @@ try {
         throw new mysqli_sql_exception($conn->error, $conn->errno);
     }
 
+    $stage = 'inicio_transacao';
     $conn->begin_transaction();
     $transactionStarted = true;
 
+    $stage = 'tutores';
     $firstNames = [
         'Ana', 'Bruno', 'Carla', 'Daniel', 'Elisa', 'Fabio', 'Gabriela', 'Henrique', 'Isabela', 'Joao',
         'Karen', 'Lucas', 'Mariana', 'Nicolas', 'Olivia', 'Paulo', 'Renata', 'Samuel', 'Talita', 'Vinicius'
@@ -144,6 +150,7 @@ try {
     }
     $tutorStmt->close();
 
+    $stage = 'animais';
     $animalNames = [
         'Amora', 'Apolo', 'Bela', 'Bento', 'Bob', 'Cacau', 'Chico', 'Dara', 'Fred', 'Jade',
         'Kiara', 'Lola', 'Luke', 'Maya', 'Mel', 'Nina', 'Paco', 'Sol', 'Theo', 'Zeca'
@@ -225,6 +232,7 @@ try {
     }
     $animalStmt->close();
 
+    $stage = 'atendimentos';
     $appointmentExistsStmt = $conn->prepare('SELECT id FROM pet_atendimentos WHERE motivo = ? LIMIT 1');
     $appointmentSql = "INSERT INTO pet_atendimentos
         (animal_id, tipo, status, inicio_em, fim_em, motivo, anamnese, exame_clinico, peso_kg,
@@ -284,6 +292,7 @@ try {
     $appointmentExistsStmt->close();
     $appointmentStmt->close();
 
+    $stage = 'internacoes';
     $hospitalExistsStmt = $conn->prepare('SELECT id FROM pet_internacoes WHERE motivo = ? LIMIT 1');
     $hospitalSql = "INSERT INTO pet_internacoes
         (animal_id, atendimento_origem_id, status, entrada_em, previsao_alta_em, setor, leito,
@@ -327,6 +336,7 @@ try {
     $hospitalExistsStmt->close();
     $hospitalStmt->close();
 
+    $stage = 'validacao_totais';
     $demoTotals = pet_demo_totals($conn);
     $expectedTotals = ['tutores' => 100, 'animais' => 200, 'atendimentos' => 50, 'internacoes' => 2];
     if ($demoTotals !== $expectedTotals) {
@@ -363,6 +373,7 @@ try {
     pet_demo_response(500, [
         'ok' => false,
         'codigo' => 'CARGA_DEMO_FALHOU',
+        'etapa' => $stage,
         'erro_tipo' => get_class($exception),
         'erro_codigo' => (int) $exception->getCode(),
     ]);
