@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - "feature/pet-*"
+      - feat/project-hub-menu
   pull_request:
     branches:
       - main
@@ -46,7 +47,19 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Check JavaScript
-        run: node --check pet/frontend/js/app.js
+        run: |
+          node --check pet/frontend/js/app.js
+          node --check frontend/js/home.js
+
+      - name: Check project hub links
+        shell: bash
+        run: |
+          grep -q "https://lemeinformatica.com.br/pet/" index.php
+          grep -q "https://lemesolucoesemti.com.br/pet/" index.php
+          grep -q "https://lemeinformatica.com.br/gov/" index.php
+          grep -q "https://lemesolucoesemti.com.br/gov/" index.php
+          grep -q "https://lemesolucoesemti.com.br/invest/" index.php
+          grep -q "https://lemeinformatica.com.br/login.php" index.php
 
       - name: Reject runtime secrets
         shell: bash

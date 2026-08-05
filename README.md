@@ -4,6 +4,7 @@ Sistema central de autenticacao, API e operacao da Leme Informatica.
 
 ## Modulos
 
+- central publica de projetos dos dois dominios;
 - API de animais e alimentos;
 - usuarios e perfis compartilhados entre os dominios;
 - dashboard operacional;
@@ -13,6 +14,12 @@ Sistema central de autenticacao, API e operacao da Leme Informatica.
 
 - Sistema principal: `https://lemeinformatica.com.br/`
 - Modulo Pet: `https://lemeinformatica.com.br/pet/`
+
+## Central de projetos
+
+A pagina inicial apresenta os projetos ativos da Leme Informatica e da Leme
+Solucoes em TI. A manutencao do catalogo esta documentada em
+[`docs/PROJECT_HUB.md`](docs/PROJECT_HUB.md).
 
 ## Seguranca
 
