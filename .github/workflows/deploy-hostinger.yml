@@ -78,11 +78,7 @@ jobs:
           mkdir -p "$staging"
           selected=0
 
-          if [[ "$GITHUB_EVENT_NAME" == "push" && -n "$BEFORE_SHA" && "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]]; then
-            git diff --name-only -z --diff-filter=ACMRT "$BEFORE_SHA" "$GITHUB_SHA" > "$file_list"
-          else
-            git ls-files -z > "$file_list"
-          fi
+          git ls-files -z > "$file_list"
 
           while IFS= read -r -d '' file; do
             case "$file" in
