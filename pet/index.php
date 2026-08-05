@@ -29,6 +29,7 @@ $contextPayload = json_encode([
     <meta name="color-scheme" content="light">
     <title>Leme Pet - Gestao veterinaria</title>
     <link rel="stylesheet" href="frontend/css/app.css?v=<?= rawurlencode(PET_VERSION) ?>">
+    <link rel="stylesheet" href="frontend/css/modules/commerce.css?v=<?= rawurlencode(PET_VERSION) ?>">
 </head>
 <body>
     <script id="petContext" type="application/json"><?= $contextPayload ?></script>
@@ -52,6 +53,13 @@ $contextPayload = json_encode([
                 <?php if ($permissions['ver_prontuario']): ?>
                     <button class="nav-item" type="button" data-view="atendimentos">Atendimentos</button>
                     <button class="nav-item" type="button" data-view="internacoes">Internacoes</button>
+                <?php endif; ?>
+                <?php if ($permissions['ver_estetica']): ?>
+                    <button class="nav-item" type="button" data-view="banho_tosa">Banho e tosa</button>
+                <?php endif; ?>
+                <?php if ($permissions['ver_comercial']): ?>
+                    <button class="nav-item" type="button" data-view="produtos">Produtos e estoque</button>
+                    <button class="nav-item" type="button" data-view="vendas">Vendas</button>
                 <?php endif; ?>
                 <?php if ($permissions['gerenciar_equipe']): ?>
                     <button class="nav-item" type="button" data-view="equipe">Equipe veterinaria</button>
@@ -111,6 +119,13 @@ $contextPayload = json_encode([
                         <article class="metric"><span>Animais ativos</span><strong id="metricAnimals">0</strong><small>pacientes</small></article>
                         <article class="metric"><span>Atendimentos hoje</span><strong id="metricAppointments">0</strong><small>agenda</small></article>
                         <article class="metric critical"><span>Internados agora</span><strong id="metricAdmissions">0</strong><small>em acompanhamento</small></article>
+                    </div>
+
+                    <div class="metric-grid commerce-metrics" id="commerceMetricGrid">
+                        <article class="metric"><span>Banho e tosa hoje</span><strong id="metricGroomingToday">0</strong><small>agendamentos</small></article>
+                        <article class="metric"><span>Vendas hoje</span><strong id="metricSalesToday">R$ 0,00</strong><small>faturamento</small></article>
+                        <article class="metric warning"><span>Estoque baixo</span><strong id="metricLowStock">0</strong><small>itens para repor</small></article>
+                        <article class="metric"><span>Produtos ativos</span><strong id="metricProducts">0</strong><small>catalogo</small></article>
                     </div>
 
                     <div class="dashboard-grid">
@@ -269,6 +284,77 @@ $contextPayload = json_encode([
                                     <tbody id="vetsTable"><tr><td colspan="6">Carregando equipe...</td></tr></tbody>
                                 </table>
                             </div>
+                        </div>
+                    </section>
+                <?php endif; ?>
+
+                <?php if ($permissions['ver_estetica']): ?>
+                    <section class="view" data-view-panel="banho_tosa" hidden>
+                        <div class="section-heading">
+                            <div><p class="section-kicker">Estetica pet</p><h2>Banho e tosa</h2></div>
+                            <?php if ($permissions['gerenciar_estetica']): ?>
+                                <div class="heading-actions">
+                                    <button class="button secondary" id="newServiceButton" type="button">Novo servico</button>
+                                    <button class="button primary" id="newGroomingButton" type="button">Novo agendamento</button>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="toolbar split-toolbar">
+                            <label class="search-field"><span>Buscar</span><input id="groomingSearch" type="search" placeholder="Animal, tutor ou servico"></label>
+                            <label class="filter-field"><span>Status</span>
+                                <select id="groomingStatusFilter">
+                                    <option value="">Todos</option><option value="agendado">Agendado</option>
+                                    <option value="confirmado">Confirmado</option><option value="em_atendimento">Em atendimento</option>
+                                    <option value="concluido">Concluido</option><option value="cancelado">Cancelado</option>
+                                    <option value="nao_compareceu">Nao compareceu</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div class="data-section table-section">
+                            <div class="table-wrap"><table>
+                                <thead><tr><th>Data</th><th>Paciente</th><th>Servicos</th><th>Profissional</th><th>Valor</th><th>Status</th><th></th></tr></thead>
+                                <tbody id="groomingTable"><tr><td colspan="7">Carregando agenda...</td></tr></tbody>
+                            </table></div>
+                        </div>
+                    </section>
+                <?php endif; ?>
+
+                <?php if ($permissions['ver_comercial']): ?>
+                    <section class="view" data-view-panel="produtos" hidden>
+                        <div class="section-heading">
+                            <div><p class="section-kicker">Comercial</p><h2>Produtos e estoque</h2></div>
+                            <?php if ($permissions['gerenciar_produtos']): ?>
+                                <button class="button primary" id="newProductButton" type="button">Novo produto</button>
+                            <?php endif; ?>
+                        </div>
+                        <div class="toolbar split-toolbar">
+                            <label class="search-field"><span>Buscar</span><input id="productSearch" type="search" placeholder="Produto, SKU, marca ou codigo de barras"></label>
+                            <label class="checkbox-field inline-check"><input id="lowStockFilter" type="checkbox"><span>Somente estoque baixo</span></label>
+                        </div>
+                        <div class="data-section table-section">
+                            <div class="table-wrap"><table>
+                                <thead><tr><th>Produto</th><th>Categoria</th><th>Preco</th><th>Estoque</th><th>Minimo</th><th>Status</th><th></th></tr></thead>
+                                <tbody id="productsTable"><tr><td colspan="7">Carregando produtos...</td></tr></tbody>
+                            </table></div>
+                        </div>
+                    </section>
+
+                    <section class="view" data-view-panel="vendas" hidden>
+                        <div class="section-heading">
+                            <div><p class="section-kicker">Ponto de venda</p><h2>Vendas</h2></div>
+                            <?php if ($permissions['registrar_venda']): ?>
+                                <button class="button primary" id="newSaleButton" type="button">Nova venda</button>
+                            <?php endif; ?>
+                        </div>
+                        <div class="toolbar split-toolbar">
+                            <label class="search-field"><span>Buscar</span><input id="saleSearch" type="search" placeholder="Numero, tutor ou produto"></label>
+                            <label class="filter-field"><span>Status</span><select id="saleStatusFilter"><option value="">Todas</option><option value="concluida">Concluidas</option><option value="cancelada">Canceladas</option></select></label>
+                        </div>
+                        <div class="data-section table-section">
+                            <div class="table-wrap"><table>
+                                <thead><tr><th>Venda</th><th>Data</th><th>Cliente</th><th>Itens</th><th>Pagamento</th><th>Total</th><th>Status</th><th></th></tr></thead>
+                                <tbody id="salesTable"><tr><td colspan="8">Carregando vendas...</td></tr></tbody>
+                            </table></div>
                         </div>
                     </section>
                 <?php endif; ?>
@@ -501,9 +587,93 @@ $contextPayload = json_encode([
         <div id="recordContent"><p class="empty-state">Carregando prontuario...</p></div>
     </dialog>
 
+    <dialog class="modal" id="groomingDialog">
+        <form id="groomingForm" method="dialog">
+            <div class="modal-header"><div><p class="section-kicker">Estetica pet</p><h2 id="groomingDialogTitle">Novo agendamento</h2></div><button class="icon-button" type="button" data-commerce-close aria-label="Fechar">&times;</button></div>
+            <input type="hidden" name="id">
+            <div class="form-grid commerce-form">
+                <label class="span-2">Paciente<select name="animal_id" required></select></label>
+                <label class="span-2">Servico<select name="servico_id" required></select></label>
+                <label>Inicio<input name="inicio_em" type="datetime-local" required></label>
+                <label>Status<select name="status"><option value="agendado">Agendado</option><option value="confirmado">Confirmado</option><option value="em_atendimento">Em atendimento</option><option value="concluido">Concluido</option><option value="cancelado">Cancelado</option><option value="nao_compareceu">Nao compareceu</option></select></label>
+                <label>Fim previsto<input name="fim_previsto_em" type="datetime-local"></label>
+                <label>Fim realizado<input name="fim_em" type="datetime-local"></label>
+                <label class="span-2">Profissional<input name="profissional_nome" maxlength="140"></label>
+                <label>Observacoes de entrada<textarea name="observacoes_entrada" rows="3" maxlength="10000"></textarea></label>
+                <label>Observacoes de saida<textarea name="observacoes_saida" rows="3" maxlength="10000"></textarea></label>
+            </div>
+            <div class="modal-actions"><button class="button secondary" type="button" data-commerce-close>Cancelar</button><button class="button primary" type="submit">Salvar agendamento</button></div>
+        </form>
+    </dialog>
+
+    <dialog class="modal" id="serviceDialog">
+        <form id="serviceForm" method="dialog">
+            <div class="modal-header"><div><p class="section-kicker">Catalogo de servicos</p><h2>Novo servico</h2></div><button class="icon-button" type="button" data-commerce-close aria-label="Fechar">&times;</button></div>
+            <div class="form-grid commerce-form">
+                <label>Codigo<input name="codigo" maxlength="50" required></label><label>Nome<input name="nome" maxlength="140" required></label>
+                <label>Categoria<select name="categoria"><option value="banho">Banho</option><option value="tosa">Tosa</option><option value="spa">Spa</option><option value="higiene">Higiene</option><option value="outro">Outro</option></select></label>
+                <label>Duracao (minutos)<input name="duracao_minutos" type="number" min="5" max="1440" value="60" required></label>
+                <label>Preco<input name="preco" type="number" min="0" step="0.01" required></label>
+                <label class="checkbox-field"><input name="ativo" type="checkbox" checked><span>Servico ativo</span></label>
+                <label class="span-2">Descricao<textarea name="descricao" rows="3" maxlength="500"></textarea></label>
+            </div>
+            <div class="modal-actions"><button class="button secondary" type="button" data-commerce-close>Cancelar</button><button class="button primary" type="submit">Salvar servico</button></div>
+        </form>
+    </dialog>
+
+    <dialog class="modal" id="productDialog">
+        <form id="productForm" method="dialog">
+            <div class="modal-header"><div><p class="section-kicker">Catalogo comercial</p><h2 id="productDialogTitle">Novo produto</h2></div><button class="icon-button" type="button" data-commerce-close aria-label="Fechar">&times;</button></div>
+            <input type="hidden" name="id">
+            <div class="form-grid commerce-form">
+                <label>SKU<input name="sku" maxlength="60" required></label><label>Nome<input name="nome" maxlength="180" required></label>
+                <label>Categoria<select name="categoria"><option value="racao">Racao</option><option value="petisco">Petisco</option><option value="higiene">Higiene</option><option value="acessorio">Acessorio</option><option value="medicamento">Medicamento</option><option value="outro">Outro</option></select></label>
+                <label>Unidade<input name="unidade" maxlength="20" value="un" required></label>
+                <label>Marca<input name="marca" maxlength="100"></label><label>Codigo de barras<input name="codigo_barras" maxlength="80"></label>
+                <label>Preco de custo<input name="preco_custo" type="number" min="0" step="0.01"></label><label>Preco de venda<input name="preco_venda" type="number" min="0" step="0.01" required></label>
+                <label data-initial-stock>Estoque inicial<input name="estoque_inicial" type="number" min="0" step="0.001" value="0"></label><label>Estoque minimo<input name="estoque_minimo" type="number" min="0" step="0.001" value="0"></label>
+                <label class="checkbox-field"><input name="controla_estoque" type="checkbox" checked><span>Controlar estoque</span></label><label class="checkbox-field"><input name="ativo" type="checkbox" checked><span>Produto ativo</span></label>
+            </div>
+            <div class="modal-actions"><button class="button secondary" type="button" data-commerce-close>Cancelar</button><button class="button primary" type="submit">Salvar produto</button></div>
+        </form>
+    </dialog>
+
+    <dialog class="modal" id="stockDialog">
+        <form id="stockForm" method="dialog">
+            <div class="modal-header"><div><p class="section-kicker">Movimento manual</p><h2>Atualizar estoque</h2></div><button class="icon-button" type="button" data-commerce-close aria-label="Fechar">&times;</button></div>
+            <div class="form-grid commerce-form">
+                <label class="span-2">Produto<select name="produto_id" required></select></label>
+                <label>Tipo<select name="tipo"><option value="entrada">Entrada</option><option value="saida">Saida</option><option value="ajuste_positivo">Ajuste positivo</option><option value="ajuste_negativo">Ajuste negativo</option></select></label>
+                <label>Quantidade<input name="quantidade" type="number" min="0.001" step="0.001" required></label>
+                <label>Custo unitario<input name="custo_unitario" type="number" min="0" step="0.01"></label>
+                <label class="span-2">Motivo<textarea name="motivo" rows="3" maxlength="500" required></textarea></label>
+            </div>
+            <div class="modal-actions"><button class="button secondary" type="button" data-commerce-close>Cancelar</button><button class="button primary" type="submit">Confirmar movimento</button></div>
+        </form>
+    </dialog>
+
+    <dialog class="modal wide" id="saleDialog">
+        <form id="saleForm" method="dialog">
+            <div class="modal-header"><div><p class="section-kicker">Ponto de venda</p><h2>Nova venda</h2></div><button class="icon-button" type="button" data-commerce-close aria-label="Fechar">&times;</button></div>
+            <div class="form-grid commerce-form sale-header">
+                <label class="span-2">Tutor (opcional)<select name="tutor_id"><option value="">Consumidor nao identificado</option></select></label>
+                <label>Forma de pagamento<select name="forma_pagamento"><option value="pix">PIX</option><option value="dinheiro">Dinheiro</option><option value="debito">Debito</option><option value="credito">Credito</option><option value="outro">Outro</option></select></label>
+                <label>Desconto<input name="desconto" type="number" min="0" step="0.01" value="0"></label>
+            </div>
+            <div class="sale-items-section">
+                <div class="panel-heading"><div><h3>Itens da venda</h3><p>Precos e estoque sao confirmados pelo servidor</p></div><button class="button secondary" id="addSaleItemButton" type="button">Adicionar item</button></div>
+                <div id="saleItems" class="sale-items"></div>
+                <div class="sale-total"><span>Total estimado</span><strong id="saleEstimatedTotal">R$ 0,00</strong></div>
+            </div>
+            <div class="form-grid commerce-form"><label class="span-2">Observacoes<textarea name="observacoes" rows="2" maxlength="1000"></textarea></label></div>
+            <div class="modal-actions"><button class="button secondary" type="button" data-commerce-close>Cancelar</button><button class="button primary" type="submit">Concluir venda</button></div>
+        </form>
+    </dialog>
+
     <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
     <div class="loading-overlay" id="loadingOverlay" hidden><span></span><p>Processando...</p></div>
 
     <script src="frontend/js/app.js?v=<?= rawurlencode(PET_VERSION) ?>"></script>
+    <script src="frontend/js/modules/commerce.js?v=<?= rawurlencode(PET_VERSION) ?>"></script>
 </body>
 </html>

@@ -162,6 +162,21 @@ jobs:
           bye
           LFTP_COMMANDS
 
+          migration_ok=""
+          for attempt in $(seq 1 10); do
+            if curl --silent --show-error --fail --max-time 45 \
+              -X POST -H "X-API-KEY: $APP_API_KEY" \
+              https://lemeinformatica.com.br/pet/migrate.php \
+              -o .migration.json; then
+              migration_ok="$(php -r '$data = json_decode(file_get_contents(".migration.json"), true); echo is_array($data) && ($data["ok"] ?? false) === true ? "yes" : "";' || true)"
+            fi
+            if [[ "$migration_ok" == "yes" ]]; then
+              break
+            fi
+            sleep 3
+          done
+          test "$migration_ok" = "yes"
+
           expected_version="$(tr -d '\r\n' < "$GITHUB_WORKSPACE/pet/VERSION")"
           published_version=""
 

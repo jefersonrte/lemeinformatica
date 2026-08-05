@@ -17,8 +17,8 @@
 4. Revisar e fazer merge na branch `main`.
 5. O workflow `Deploy Hostinger` publica os arquivos rastreados em uma unica
    sessao FTPS persistente.
-6. Entrar como administrador e executar `/pet/install.php` quando a versao
-   contiver uma nova migracao.
+6. O pipeline chama `/pet/migrate.php` por `POST` com a API key protegida e
+   confirma a versao antes do health check.
 7. Executar o roteiro da versao em `docs/versions/`.
 8. Criar uma tag anotada, por exemplo `pet-v1.0.0`.
 
@@ -33,6 +33,8 @@ variables > Actions`:
 - `HOSTINGER_FTP_SERVER`;
 - `HOSTINGER_FTP_USERNAME`;
 - `HOSTINGER_FTP_PASSWORD`.
+- `APP_DB_HOST`, `APP_DB_NAME`, `APP_DB_USERNAME`, `APP_DB_PASSWORD`;
+- `APP_API_KEY`.
 
 Os valores nunca devem ser gravados em arquivos, commits, logs ou documentacao.
 

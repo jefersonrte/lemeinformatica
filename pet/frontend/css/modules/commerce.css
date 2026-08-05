@@ -1,0 +1,138 @@
+.heading-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.commerce-metrics {
+    margin-top: 12px;
+}
+
+.metric.warning {
+    border-left-color: #d08b31;
+}
+
+.commerce-form {
+    padding: 20px 24px;
+}
+
+.inline-check {
+    min-height: 42px;
+    padding: 0 4px;
+    align-self: end;
+}
+
+.stock-low {
+    color: #9a4d18;
+    font-weight: 800;
+}
+
+.stock-ok {
+    color: #256b52;
+    font-weight: 700;
+}
+
+.sale-items-section {
+    margin: 0 24px 18px;
+    padding: 18px;
+    border: 1px solid var(--line);
+    background: #f8fafb;
+}
+
+.sale-items {
+    display: grid;
+    gap: 9px;
+    margin-top: 14px;
+}
+
+.sale-item-row {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) 110px 120px 38px;
+    gap: 8px;
+    align-items: end;
+}
+
+.sale-item-row label {
+    min-width: 0;
+}
+
+.sale-item-row output {
+    display: flex;
+    align-items: center;
+    min-height: 42px;
+    padding: 0 11px;
+    border: 1px solid var(--line);
+    background: #ffffff;
+    font-weight: 800;
+}
+
+.sale-remove {
+    width: 38px;
+    height: 42px;
+    border: 1px solid #d7c4c1;
+    color: #913a34;
+    background: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.sale-total {
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 18px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+}
+
+.sale-total span {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.sale-total strong {
+    font-size: 24px;
+}
+
+.commerce-detail {
+    display: grid;
+    gap: 8px;
+    min-width: 260px;
+}
+
+.commerce-detail p {
+    margin: 0;
+}
+
+@media (max-width: 720px) {
+    .heading-actions {
+        width: 100%;
+    }
+
+    .heading-actions .button {
+        flex: 1;
+    }
+
+    .sale-item-row {
+        grid-template-columns: 1fr 88px 38px;
+    }
+
+    .sale-item-row output {
+        grid-column: 1 / 3;
+        grid-row: 2;
+    }
+
+    .sale-remove {
+        grid-column: 3;
+        grid-row: 1;
+    }
+
+    .sale-items-section {
+        margin-right: 14px;
+        margin-left: 14px;
+        padding: 13px;
+    }
+}

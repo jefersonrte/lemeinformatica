@@ -4,7 +4,7 @@ declare(strict_types=1);
 $petVersionPath = dirname(__DIR__) . '/VERSION';
 $petVersionContents = is_file($petVersionPath) ? file_get_contents($petVersionPath) : false;
 $petVersion = is_string($petVersionContents) ? trim($petVersionContents) : '';
-define('PET_VERSION', $petVersion !== '' ? $petVersion : '1.0.1');
+define('PET_VERSION', $petVersion !== '' ? $petVersion : '1.1.0');
 define('PET_ROOT', dirname(__DIR__));
 define('PET_UPLOAD_ROOT', PET_ROOT . '/uploads');
 define('PET_MAX_UPLOAD_BYTES', 5 * 1024 * 1024);
@@ -14,8 +14,20 @@ require_once dirname(__DIR__, 2) . '/includes/http.php';
 require_once dirname(__DIR__, 2) . '/includes/database.php';
 require_once dirname(__DIR__, 2) . '/includes/session.php';
 require_once __DIR__ . '/validation.php';
+require_once __DIR__ . '/migrations.php';
 require_once __DIR__ . '/permissions.php';
 require_once __DIR__ . '/uploads.php';
+
+final class PetDomainException extends RuntimeException
+{
+    public function __construct(
+        string $message,
+        public readonly string $errorCode = 'REGRA_DE_NEGOCIO',
+        public readonly int $httpStatus = 422
+    ) {
+        parent::__construct($message);
+    }
+}
 
 function pet_boot_page(): array
 {
@@ -68,6 +80,14 @@ function pet_boot_api(): array
 function pet_api_exception(Throwable $exception, string $fallback = 'Nao foi possivel concluir a operacao.'): void
 {
     error_log('[PET] ' . get_class($exception) . ': ' . $exception->getMessage());
+
+    if ($exception instanceof PetDomainException) {
+        json_response([
+            'ok' => false,
+            'codigo' => $exception->errorCode,
+            'erro' => $exception->getMessage(),
+        ], $exception->httpStatus);
+    }
 
     if ($exception instanceof mysqli_sql_exception) {
         $code = (int) $exception->getCode();

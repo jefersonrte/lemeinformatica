@@ -2,6 +2,25 @@
 
 Todas as alteracoes relevantes do Leme Pet sao registradas neste arquivo.
 
+## [1.1.0] - 2026-08-05
+
+### Adicionado
+
+- modulo de banho e tosa com catalogo de servicos, agenda e acompanhamento de status;
+- catalogo de produtos com racao, petiscos, higiene, acessorios e medicamentos;
+- controle transacional de estoque com entradas, saidas, ajustes, vendas e estornos;
+- ponto de venda com varios itens, desconto, forma de pagamento e cancelamento auditado;
+- indicadores clinicos, de estetica, estoque e faturamento no painel operacional;
+- API agregada protegida para o dashboard do dominio Leme Solucoes em TI;
+- migrador versionado executado automaticamente no deploy;
+- frontend modular em `frontend/*/modules` e regras de dominio em `modules`.
+
+### Seguranca
+
+- o dashboard entre dominios recebe somente totais e series agregadas;
+- venda e baixa de estoque acontecem na mesma transacao;
+- somente administradores podem cancelar vendas, com estorno e motivo obrigatorio.
+
 ## [1.0.1] - 2026-07-26
 
 ### Adicionado

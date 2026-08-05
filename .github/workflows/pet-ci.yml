@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - "feature/pet-*"
+      - "feat/pet-*"
       - feat/project-hub-menu
   pull_request:
     branches:
@@ -49,7 +50,20 @@ jobs:
       - name: Check JavaScript
         run: |
           node --check pet/frontend/js/app.js
+          node --check pet/frontend/js/modules/commerce.js
           node --check frontend/js/home.js
+
+      - name: Check Pet 1.1 contracts
+        shell: bash
+        run: |
+          grep -q "CREATE TABLE IF NOT EXISTS pet_banho_tosa_agendamentos" pet/sql/migrations/002_v1_1_0_pet_estetica_comercial.sql
+          grep -q "CREATE TABLE IF NOT EXISTS pet_produtos" pet/sql/migrations/002_v1_1_0_pet_estetica_comercial.sql
+          grep -q "CREATE TABLE IF NOT EXISTS pet_vendas" pet/sql/migrations/002_v1_1_0_pet_estetica_comercial.sql
+          grep -q "data-view=\"banho_tosa\"" pet/index.php
+          grep -q "data-view=\"produtos\"" pet/index.php
+          grep -q "data-view=\"vendas\"" pet/index.php
+          test -s pet/api/relatorios.php
+          test -s pet/api/vendas.php
 
       - name: Check project hub links
         shell: bash

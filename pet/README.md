@@ -4,7 +4,7 @@ Modulo de gestao veterinaria publicado em:
 
 `https://lemeinformatica.com.br/pet/`
 
-## Escopo da versao 1.0.0
+## Escopo da versao 1.1.0
 
 - cadastro completo de tutores com fotografia;
 - varios animais vinculados ao mesmo tutor;
@@ -15,6 +15,10 @@ Modulo de gestao veterinaria publicado em:
 - equipe veterinaria vinculada aos usuarios existentes;
 - dashboard agregado para o perfil visualizador;
 - auditoria e controle de permissao no backend.
+- banho e tosa com catalogo de servicos e agenda;
+- produtos, estoque e ponto de venda;
+- relatorio agregado para o dashboard do segundo dominio;
+- migracoes incrementais aplicadas pelo pipeline de deploy.
 
 ## Estrutura
 
@@ -24,6 +28,7 @@ pet/
   docs/                Arquitetura, API, implantacao e versoes
   frontend/css/        Estilos do modulo
   frontend/js/         Aplicacao do navegador
+  modules/             Regras de negocio por dominio funcional
   includes/            Bootstrap, permissoes, validacao e fotos
   sql/migrations/      Migracoes versionadas
   uploads/             Fotografias; scripts bloqueados por .htaccess
@@ -36,20 +41,20 @@ pet/
 
 1. Publique a pasta `pet` na raiz do dominio.
 2. Entre com um usuario administrador.
-3. Acesse `/pet/install.php`.
-4. Execute a migracao.
+3. O deploy executa `/pet/migrate.php` com a API key protegida.
+4. Como alternativa administrativa, acesse `/pet/install.php` e execute a migracao.
 5. Abra `/pet/` e vincule os veterinarios aos usuarios do sistema.
 
 Consulte `docs/DEPLOY.md` antes de publicar.
 
 ## Perfis
 
-| Perfil | Indicadores | Cadastros | Prontuario | Internacao | Equipe |
-|---|---:|---:|---:|---:|---:|
-| Admin | Sim | Sim | Sim | Sim | Sim |
-| Operador | Sim | Sim | Leitura/agenda | Sim | Nao |
-| Veterinario vinculado | Sim | Leitura | Sim | Sim | Nao |
-| Visualizador | Sim | Nao | Nao | Nao | Nao |
+| Perfil | Indicadores | Cadastros | Clinica | Estetica | Comercial | Equipe |
+|---|---:|---:|---:|---:|---:|---:|
+| Admin | Sim | Sim | Sim | Sim | Sim | Sim |
+| Operador | Sim | Sim | Agenda | Sim | Sim | Nao |
+| Veterinario vinculado | Sim | Leitura | Sim | Leitura | Leitura | Nao |
+| Visualizador | Sim | Nao | Nao | Nao | Nao | Nao |
 
 O veterinario continua usando um usuario `admin` ou `operador` da autenticacao
 central e recebe a permissao clinica ao ser vinculado em `pet_veterinarios`.

@@ -49,6 +49,13 @@ function pet_user_context(array $user): array
         'ver_prontuario' => $isAdmin || $isOperator || $isVet,
         'editar_prontuario' => $isAdmin || $isVet,
         'gerenciar_internacao' => $isAdmin || $isOperator || $isVet,
+        'ver_estetica' => !$isViewer,
+        'gerenciar_estetica' => $isAdmin || $isOperator,
+        'ver_comercial' => !$isViewer,
+        'gerenciar_produtos' => $isAdmin || $isOperator,
+        'gerenciar_estoque' => $isAdmin || $isOperator,
+        'registrar_venda' => $isAdmin || $isOperator,
+        'cancelar_venda' => $isAdmin,
         'gerenciar_equipe' => $isAdmin,
     ];
 
