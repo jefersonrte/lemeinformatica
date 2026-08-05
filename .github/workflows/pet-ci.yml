@@ -51,6 +51,7 @@ jobs:
         run: |
           node --check pet/frontend/js/app.js
           node --check pet/frontend/js/modules/commerce.js
+          node --check pet/tests/production-smoke.mjs
           node --check frontend/js/home.js
 
       - name: Check Pet 1.1 contracts

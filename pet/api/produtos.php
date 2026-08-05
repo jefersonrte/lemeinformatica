@@ -89,7 +89,7 @@ function pet_produtos_listar(): void
            AND (nome LIKE ? OR sku LIKE ? OR marca LIKE ? OR codigo_barras LIKE ?)
          ORDER BY estoque_baixo DESC, ativo DESC, nome
          LIMIT 300",
-        'issiissss',
+        'ississss',
         [$includeInactive, $category, $category, $onlyLow, $search, $search, $search, $search]
     )->get_result()->fetch_all(MYSQLI_ASSOC);
     json_response(['ok' => true, 'data' => $records]);
