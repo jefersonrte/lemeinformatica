@@ -13,7 +13,9 @@ if (!defined('API_KEY') || API_KEY === '' || !hash_equals((string) API_KEY, $pro
     exit;
 }
 
-$petVersion = '1.0.1';
+$petVersionPath = __DIR__ . '/pet/VERSION';
+$petVersionContents = is_file($petVersionPath) ? file_get_contents($petVersionPath) : false;
+$petVersion = is_string($petVersionContents) ? trim($petVersionContents) : '';
 
 $result = [
     'ok' => true,
@@ -22,6 +24,7 @@ $result = [
     'sessao' => false,
     'banco' => false,
     'versao_pet' => $petVersion !== '' ? $petVersion : null,
+    'versao_banco_pet' => null,
 ];
 
 try {
@@ -36,8 +39,15 @@ try {
 
 try {
     require_once __DIR__ . '/includes/database.php';
-    db()->query('SELECT 1');
+    $conn = db();
+    $conn->query('SELECT 1');
     $result['banco'] = true;
+    $schemaResult = $conn->query('SELECT versao FROM pet_schema_migrations ORDER BY aplicado_em DESC, versao DESC LIMIT 1');
+    $result['versao_banco_pet'] = $schemaResult->fetch_assoc()['versao'] ?? null;
+    if ($result['versao_pet'] !== $result['versao_banco_pet']) {
+        $result['ok'] = false;
+        $result['banco_erro'] = 'VERSAO_PET_DIVERGENTE';
+    }
 } catch (Throwable $exception) {
     $result['ok'] = false;
     $result['banco_erro'] = get_class($exception);

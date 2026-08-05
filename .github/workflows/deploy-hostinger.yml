@@ -86,7 +86,7 @@ jobs:
 
           while IFS= read -r -d '' file; do
             case "$file" in
-              .github/*|.gitignore|README.md|README_USUARIOS.md|backend/README.md|frontend/README.md|pet/README.md|pet/CHANGELOG.md|pet/VERSION|pet/docs/*|sql/*)
+              .github/*|.gitignore|README.md|README_USUARIOS.md|backend/README.md|frontend/README.md|pet/README.md|pet/CHANGELOG.md|pet/docs/*|sql/*)
                 continue
                 ;;
               includes/config.php|includes/database.runtime.php)
@@ -162,22 +162,22 @@ jobs:
           bye
           LFTP_COMMANDS
 
-          migration_ok=""
+          expected_version="$(tr -d '\r\n' < "$GITHUB_WORKSPACE/pet/VERSION")"
+          migration_version=""
           for attempt in $(seq 1 10); do
             if curl --silent --show-error --fail --max-time 45 \
               -X POST -H "X-API-KEY: $APP_API_KEY" \
               https://lemeinformatica.com.br/pet/migrate.php \
               -o .migration.json; then
-              migration_ok="$(php -r '$data = json_decode(file_get_contents(".migration.json"), true); echo is_array($data) && ($data["ok"] ?? false) === true ? "yes" : "";' || true)"
+              migration_version="$(php -r '$data = json_decode(file_get_contents(".migration.json"), true); echo is_array($data) && ($data["ok"] ?? false) === true ? ($data["versao_banco"] ?? "") : "";' || true)"
             fi
-            if [[ "$migration_ok" == "yes" ]]; then
+            if [[ "$migration_version" == "$expected_version" ]]; then
               break
             fi
             sleep 3
           done
-          test "$migration_ok" = "yes"
+          test "$migration_version" = "$expected_version"
 
-          expected_version="$(tr -d '\r\n' < "$GITHUB_WORKSPACE/pet/VERSION")"
           published_version=""
 
           for attempt in $(seq 1 10); do
