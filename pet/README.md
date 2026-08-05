@@ -4,7 +4,7 @@ Modulo de gestao veterinaria publicado em:
 
 `https://lemeinformatica.com.br/pet/`
 
-## Escopo da versao 1.1.0
+## Escopo da versao 1.1.1
 
 - cadastro completo de tutores com fotografia;
 - varios animais vinculados ao mesmo tutor;
@@ -19,6 +19,7 @@ Modulo de gestao veterinaria publicado em:
 - produtos, estoque e ponto de venda;
 - relatorio agregado para o dashboard do segundo dominio;
 - migracoes incrementais aplicadas pelo pipeline de deploy.
+- login central compartilhado com o dashboard do segundo dominio, sem copiar senha.
 
 ## Estrutura
 

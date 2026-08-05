@@ -9,6 +9,7 @@ exigem o cabecalho `X-CSRF-TOKEN`.
 
 O endpoint `relatorios.php` tambem aceita a chave de integracao no cabecalho
 `X-API-KEY`. A chave e lida somente da configuracao privada do servidor.
+O dashboard Pet usa alternativamente um token SSO no cabecalho `Authorization`.
 
 ## Dashboard
 
@@ -205,6 +206,19 @@ X-API-KEY: chave-protegida
 
 Retorna somente totais e series de vendas, categorias, estetica e especies.
 Nao retorna nomes, contatos, fotografias ou dados de prontuario.
+
+## Autenticacao do dashboard
+
+```http
+POST sso.php
+Content-Type: application/json
+
+{ "codigo": "codigo-unico-de-64-caracteres" }
+```
+
+A troca devolve um token somente uma vez. Consultas seguintes usam
+`Authorization: Bearer token`. `GET sso.php` valida o usuario e `POST sso.php`
+com Bearer revoga a sessao integrada.
 
 ## Resposta de erro
 

@@ -33,7 +33,7 @@ Navegador
 Leme Solucoes em TI
   +-- pet/api/dashboard.php
         +-- api-client.php
-        +-- HTTPS + X-API-KEY
+        +-- HTTPS + token SSO de curta duracao
         +-- lemeinformatica.com.br/pet/api/relatorios.php
 ```
 
@@ -69,8 +69,9 @@ Toda verificacao acontece novamente na API.
 
 O banco principal continua somente em `lemeinformatica.com.br`. O dominio
 `lemesolucoesemti.com.br` chama uma API agregada pelo backend e entrega o JSON
-ao navegador autenticado. A API key nunca e enviada ao navegador. Os relatorios
-nao incluem informacoes pessoais nem registros clinicos.
+ao navegador autenticado. O login usa um codigo unico, trocado no backend por um
+token cujo hash fica no banco principal. Os relatorios nao incluem informacoes
+pessoais nem registros clinicos.
 
 ## Modularidade
 

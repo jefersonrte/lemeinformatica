@@ -14,7 +14,10 @@ if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) !== 'GET') {
     json_response(['ok' => false, 'erro' => 'Metodo nao permitido.'], 405);
 }
 
-require_api_or_session();
+$ssoUser = null;
+if (!has_valid_api_key() && current_api_user() === null) {
+    $ssoUser = pet_sso_require_user();
+}
 
 try {
     $totals = pet_execute(

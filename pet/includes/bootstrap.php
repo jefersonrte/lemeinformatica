@@ -4,7 +4,7 @@ declare(strict_types=1);
 $petVersionPath = dirname(__DIR__) . '/VERSION';
 $petVersionContents = is_file($petVersionPath) ? file_get_contents($petVersionPath) : false;
 $petVersion = is_string($petVersionContents) ? trim($petVersionContents) : '';
-define('PET_VERSION', $petVersion !== '' ? $petVersion : '1.1.0');
+define('PET_VERSION', $petVersion !== '' ? $petVersion : '1.1.1');
 define('PET_ROOT', dirname(__DIR__));
 define('PET_UPLOAD_ROOT', PET_ROOT . '/uploads');
 define('PET_MAX_UPLOAD_BYTES', 5 * 1024 * 1024);
@@ -15,6 +15,7 @@ require_once dirname(__DIR__, 2) . '/includes/database.php';
 require_once dirname(__DIR__, 2) . '/includes/session.php';
 require_once __DIR__ . '/validation.php';
 require_once __DIR__ . '/migrations.php';
+require_once __DIR__ . '/sso.php';
 require_once __DIR__ . '/permissions.php';
 require_once __DIR__ . '/uploads.php';
 

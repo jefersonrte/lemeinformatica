@@ -59,11 +59,14 @@ jobs:
           grep -q "CREATE TABLE IF NOT EXISTS pet_banho_tosa_agendamentos" pet/sql/migrations/002_v1_1_0_pet_estetica_comercial.sql
           grep -q "CREATE TABLE IF NOT EXISTS pet_produtos" pet/sql/migrations/002_v1_1_0_pet_estetica_comercial.sql
           grep -q "CREATE TABLE IF NOT EXISTS pet_vendas" pet/sql/migrations/002_v1_1_0_pet_estetica_comercial.sql
+          grep -q "CREATE TABLE IF NOT EXISTS pet_sso_tokens" pet/sql/migrations/003_v1_1_1_pet_sso_dashboard.sql
           grep -q "data-view=\"banho_tosa\"" pet/index.php
           grep -q "data-view=\"produtos\"" pet/index.php
           grep -q "data-view=\"vendas\"" pet/index.php
           test -s pet/api/relatorios.php
           test -s pet/api/vendas.php
+          test -s pet/api/sso.php
+          test -s pet/sso-start.php
 
       - name: Check project hub links
         shell: bash

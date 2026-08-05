@@ -2,6 +2,19 @@
 
 Todas as alteracoes relevantes do Leme Pet sao registradas neste arquivo.
 
+## [1.1.1] - 2026-08-05
+
+### Adicionado
+
+- autenticacao central entre dominios com codigo unico e token servidor a servidor;
+- sessao independente do dashboard sem copia de senha, banco de usuarios ou API key;
+- revogacao do token ao fechar o painel analitico.
+
+### Corrigido
+
+- deploy passa a publicar o runtime completo e o arquivo `VERSION`;
+- health check compara versao da aplicacao e da tabela de migracoes.
+
 ## [1.1.0] - 2026-08-05
 
 ### Adicionado

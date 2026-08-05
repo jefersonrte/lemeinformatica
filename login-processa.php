@@ -10,6 +10,7 @@ start_api_session();
 $allowedDestinations = [
     'painel' => 'painel.php',
     'pet' => 'pet/',
+    'pet_sso' => 'pet/sso-start.php',
 ];
 $next = (string) ($_POST['next'] ?? 'painel');
 $next = array_key_exists($next, $allowedDestinations) ? $next : 'painel';
