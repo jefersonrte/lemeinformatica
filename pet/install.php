@@ -17,8 +17,7 @@ $installedVersion = null;
 try {
     $result = db()->query("SHOW TABLES LIKE 'pet_schema_migrations'");
     if ($result && $result->num_rows > 0) {
-        $versionResult = db()->query('SELECT versao FROM pet_schema_migrations ORDER BY aplicado_em DESC LIMIT 1');
-        $installedVersion = $versionResult->fetch_assoc()['versao'] ?? null;
+        $installedVersion = pet_current_schema_version();
     }
 } catch (Throwable $exception) {
     $error = 'Nao foi possivel verificar o banco.';
@@ -29,29 +28,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $error = 'A sessao de seguranca expirou. Atualize a pagina.';
     } else {
         try {
-            $migrationPath = __DIR__ . '/sql/migrations/001_v1_0_0_pet_core.sql';
-            $sql = file_get_contents($migrationPath);
-            if (!is_string($sql) || trim($sql) === '') {
-                throw new RuntimeException('Migracao nao encontrada.');
-            }
-
-            $conn = db();
-            if (!$conn->multi_query($sql)) {
-                throw new RuntimeException('Falha ao executar a migracao.');
-            }
-            do {
-                if ($result = $conn->store_result()) {
-                    $result->free();
-                }
-            } while ($conn->more_results() && $conn->next_result());
-
-            if ($conn->errno) {
-                throw new mysqli_sql_exception($conn->error, $conn->errno);
-            }
-
-            $installedVersion = PET_VERSION;
+            $migrationResult = pet_apply_migrations();
+            $installedVersion = $migrationResult['versao_banco'];
             $message = 'Modulo Pet instalado ou atualizado com sucesso.';
-            pet_audit($context, 'instalar', 'modulo_pet', null, ['versao' => PET_VERSION]);
+            pet_audit($context, 'instalar', 'modulo_pet', null, [
+                'versao' => PET_VERSION,
+                'migracoes' => $migrationResult['aplicadas'],
+            ]);
         } catch (Throwable $exception) {
             error_log('[PET INSTALL] ' . $exception->getMessage());
             $error = 'A instalacao nao foi concluida. Verifique o log do servidor e o usuario do banco.';

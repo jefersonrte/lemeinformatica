@@ -7,6 +7,9 @@ Base:
 Todos os endpoints exigem a sessao do sistema. Operacoes de escrita tambem
 exigem o cabecalho `X-CSRF-TOKEN`.
 
+O endpoint `relatorios.php` tambem aceita a chave de integracao no cabecalho
+`X-API-KEY`. A chave e lida somente da configuracao privada do servidor.
+
 ## Dashboard
 
 ```http
@@ -111,6 +114,97 @@ Campos:
 - `tipo`: `tutor`, `animal` ou `veterinario`;
 - `id`: identificador do cadastro;
 - `foto`: JPG, PNG ou WebP de ate 5 MB.
+
+## Banho e tosa
+
+```http
+GET  servicos.php
+POST servicos.php
+PUT  servicos.php?id=8
+
+GET  banho-tosa.php?status=agendado&q=mel
+GET  banho-tosa.php?id=12
+POST banho-tosa.php
+PUT  banho-tosa.php?id=12
+```
+
+Exemplo de agendamento:
+
+```json
+{
+  "animal_id": 25,
+  "inicio_em": "2026-08-10T09:00",
+  "status": "confirmado",
+  "profissional_nome": "Equipe de estetica",
+  "servicos": [
+    { "servico_id": 1, "quantidade": 1 },
+    { "servico_id": 3, "quantidade": 1 }
+  ]
+}
+```
+
+Preco, nome e duracao dos servicos sao sempre recalculados no servidor.
+
+## Produtos e estoque
+
+```http
+GET  produtos.php?q=racao&estoque_baixo=1
+GET  produtos.php?id=5
+POST produtos.php
+PUT  produtos.php?id=5
+
+GET  estoque.php?produto_id=5
+POST estoque.php
+```
+
+Exemplo de movimento manual:
+
+```json
+{
+  "produto_id": 5,
+  "tipo": "entrada",
+  "quantidade": 10,
+  "custo_unitario": 42.5,
+  "motivo": "Compra do fornecedor"
+}
+```
+
+## Vendas
+
+```http
+GET  vendas.php?status=concluida
+GET  vendas.php?id=20
+POST vendas.php
+PUT  vendas.php?id=20
+```
+
+Exemplo de venda:
+
+```json
+{
+  "tutor_id": 10,
+  "forma_pagamento": "pix",
+  "desconto": 5,
+  "itens": [
+    { "produto_id": 5, "quantidade": 2 },
+    { "produto_id": 9, "quantidade": 1 }
+  ]
+}
+```
+
+O servidor consulta o preco atual, bloqueia os produtos, valida o saldo e
+registra venda, itens e movimentos de estoque na mesma transacao. O `PUT`
+cancela uma venda e exige `{ "motivo": "..." }`; somente admin pode executar.
+
+## Relatorio integrado
+
+```http
+GET relatorios.php
+X-API-KEY: chave-protegida
+```
+
+Retorna somente totais e series de vendas, categorias, estetica e especies.
+Nao retorna nomes, contatos, fotografias ou dados de prontuario.
 
 ## Resposta de erro
 

@@ -61,7 +61,7 @@ function pet_nullable_datetime($value): ?string
     return null;
 }
 
-function pet_nullable_decimal($value, float $min = 0, float $max = 9999): ?float
+function pet_nullable_decimal($value, float $min = 0, float $max = 9999, int $precision = 2): ?float
 {
     if ($value === null || $value === '') {
         return null;
@@ -77,7 +77,7 @@ function pet_nullable_decimal($value, float $min = 0, float $max = 9999): ?float
         return null;
     }
 
-    return round($number, 2);
+    return round($number, max(0, min($precision, 6)));
 }
 
 function pet_validate_cpf(string $cpf): bool
@@ -156,7 +156,17 @@ function pet_execute(string $sql, string $types = '', array $values = []): mysql
 
 function pet_record_exists(string $table, int $id): bool
 {
-    $allowed = ['pet_tutores', 'pet_animais', 'pet_atendimentos', 'pet_internacoes', 'pet_veterinarios'];
+    $allowed = [
+        'pet_tutores',
+        'pet_animais',
+        'pet_atendimentos',
+        'pet_internacoes',
+        'pet_veterinarios',
+        'pet_servicos',
+        'pet_banho_tosa_agendamentos',
+        'pet_produtos',
+        'pet_vendas',
+    ];
     if (!in_array($table, $allowed, true)) {
         throw new InvalidArgumentException('Tabela nao permitida.');
     }

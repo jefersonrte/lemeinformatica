@@ -19,13 +19,22 @@ Navegador
   +-- pet/index.php
   |     +-- frontend/css/app.css
   |     +-- frontend/js/app.js
+  |     +-- frontend/{css,js}/modules/commerce.*
   |
   +-- pet/api/*.php
         +-- includes/bootstrap.php
         +-- includes/permissions.php
         +-- includes/validation.php
         +-- includes/uploads.php
+        +-- modules/estetica/functions.php
+        +-- modules/comercial/functions.php
         +-- banco MySQL
+
+Leme Solucoes em TI
+  +-- pet/api/dashboard.php
+        +-- api-client.php
+        +-- HTTPS + X-API-KEY
+        +-- lemeinformatica.com.br/pet/api/relatorios.php
 ```
 
 ## Modelo de permissao
@@ -50,6 +59,24 @@ Toda verificacao acontece novamente na API.
 - `pet_internacao_evolucoes`: medicoes e notas durante a internacao;
 - `pet_audit_log`: trilha de operacoes;
 - `pet_schema_migrations`: versao instalada.
+- `pet_servicos`: catalogo da estetica;
+- `pet_banho_tosa_agendamentos` e `pet_banho_tosa_itens`: agenda e servicos;
+- `pet_produtos`: catalogo e saldo atual;
+- `pet_estoque_movimentos`: razao imutavel do estoque;
+- `pet_vendas` e `pet_venda_itens`: cabecalho e itens comerciais.
+
+## Fronteira entre dominios
+
+O banco principal continua somente em `lemeinformatica.com.br`. O dominio
+`lemesolucoesemti.com.br` chama uma API agregada pelo backend e entrega o JSON
+ao navegador autenticado. A API key nunca e enviada ao navegador. Os relatorios
+nao incluem informacoes pessoais nem registros clinicos.
+
+## Modularidade
+
+Cada nova area deve ter sua regra de negocio em `pet/modules/{area}`, endpoints
+em `pet/api` e recursos visuais em `pet/frontend/*/modules`. As tabelas entram
+por uma nova migracao numerada, sem alterar migracoes ja publicadas.
 
 ## Fotografias
 
