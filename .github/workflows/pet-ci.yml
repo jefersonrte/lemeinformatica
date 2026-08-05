@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - "feature/pet-*"
+      - feat/project-hub-menu
   pull_request:
     branches:
       - main
