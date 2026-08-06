@@ -5,9 +5,11 @@ require_once __DIR__ . '/includes/bootstrap.php';
 
 apply_page_security_headers();
 start_api_session();
+$destination = ($_GET['next'] ?? '') === 'powerbi' ? 'powerbi' : 'pet';
 $user = current_api_user();
 if ($user === null) {
-    header('Location: ../login.php?next=pet_sso');
+    $loginDestination = $destination === 'powerbi' ? 'powerbi_sso' : 'pet_sso';
+    header('Location: ../login.php?next=' . rawurlencode($loginDestination));
     exit;
 }
 
@@ -36,7 +38,11 @@ try {
 
     header('Cache-Control: no-store');
     header('Referrer-Policy: no-referrer');
-    header('Location: https://lemesolucoesemti.com.br/pet/callback.php?code=' . rawurlencode($code));
+    $callback = 'https://lemesolucoesemti.com.br/pet/callback.php?code=' . rawurlencode($code);
+    if ($destination === 'powerbi') {
+        $callback .= '&next=powerbi';
+    }
+    header('Location: ' . $callback);
     exit;
 } catch (Throwable $exception) {
     error_log('[PET SSO START] ' . $exception->getMessage());

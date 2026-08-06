@@ -72,7 +72,7 @@ jobs:
       - name: Check project hub links
         shell: bash
         run: |
-          test "$(tr -d '\r\n' < PROJECT_HUB_VERSION)" = "1.1.0"
+          test "$(tr -d '\r\n' < PROJECT_HUB_VERSION)" = "1.1.1"
           grep -q "https://lemeinformatica.com.br/pet/" index.php
           grep -q "https://lemesolucoesemti.com.br/pet/" index.php
           grep -q "https://lemesolucoesemti.com.br/powerbi/" index.php
@@ -85,6 +85,8 @@ jobs:
           test -s gov/lib.php
           test -s gov/api/deputados.php
           test ! -e gov/private/config.php
+          grep -q "powerbi_sso" login.php
+          grep -q "next=powerbi" pet/sso-start.php
 
       - name: Reject runtime secrets
         shell: bash
