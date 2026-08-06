@@ -26,6 +26,9 @@ $contextPayload = json_encode([
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <?php if (defined('PET_PUBLIC_BASE')): ?>
+        <base href="<?= htmlspecialchars((string) PET_PUBLIC_BASE, ENT_QUOTES, 'UTF-8') ?>">
+    <?php endif; ?>
     <meta name="color-scheme" content="light">
     <title>Leme Pet - Gestao veterinaria</title>
     <link rel="stylesheet" href="frontend/css/app.css?v=<?= rawurlencode(PET_VERSION) ?>">

@@ -5,13 +5,14 @@ require_once __DIR__ . '/includes/bootstrap.php';
 
 apply_page_security_headers();
 start_api_session();
-$destination = ($_GET['next'] ?? '') === 'powerbi' ? 'powerbi' : 'pet';
 $user = current_api_user();
 if ($user === null) {
-    $loginDestination = $destination === 'powerbi' ? 'powerbi_sso' : 'pet_sso';
-    header('Location: ../login.php?next=' . rawurlencode($loginDestination));
+    $_SESSION['pet_sso_destination'] = ($_GET['next'] ?? '') === 'powerbi' ? 'powerbi' : 'pet';
+    header('Location: ../login.php?next=pet_sso');
     exit;
 }
+$destination = ($_SESSION['pet_sso_destination'] ?? '') === 'powerbi' ? 'powerbi' : 'pet';
+unset($_SESSION['pet_sso_destination']);
 
 try {
     $conn = db();

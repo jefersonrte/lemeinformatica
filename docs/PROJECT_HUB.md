@@ -1,6 +1,6 @@
 # Central de projetos
 
-Versao atual: `1.1.1`
+Versao atual: `1.1.2`
 Publicacao: 05/08/2026
 
 ## Objetivo
@@ -50,6 +50,8 @@ da pagina atual.
 
 ## Versoes
 
+- `1.1.2`: adiciona compatibilidade com o repositorio montado pela Hostinger
+  dentro de `/pet`, preservando a URL publica original do modulo.
 - `1.1.1`: estende o SSO central para o Power BI, mantendo uma unica senha nos
   dois dominios.
 - `1.1.0`: inclui Power BI e Nextcloud, restaura projetos ausentes e corrige os

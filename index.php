@@ -1,6 +1,13 @@
 <?php
 declare(strict_types=1);
 
+$scriptPath = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+if ($scriptPath === '/pet/index.php' || $scriptPath === '/pet/') {
+    define('PET_PUBLIC_BASE', '/pet/pet/');
+    require __DIR__ . '/pet/index.php';
+    exit;
+}
+
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 header("Permissions-Policy: camera=(), microphone=(), geolocation=()");
