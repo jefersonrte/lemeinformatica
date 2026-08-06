@@ -1,5 +1,6 @@
 /includes/config.php
 /includes/database.runtime.php
+/gov/private/config.php
 *.log
 .DS_Store
 Thumbs.db

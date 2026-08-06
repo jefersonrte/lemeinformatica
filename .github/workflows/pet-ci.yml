@@ -72,17 +72,28 @@ jobs:
       - name: Check project hub links
         shell: bash
         run: |
+          test "$(tr -d '\r\n' < PROJECT_HUB_VERSION)" = "1.1.0"
           grep -q "https://lemeinformatica.com.br/pet/" index.php
           grep -q "https://lemesolucoesemti.com.br/pet/" index.php
+          grep -q "https://lemesolucoesemti.com.br/powerbi/" index.php
           grep -q "https://lemeinformatica.com.br/gov/" index.php
           grep -q "https://lemesolucoesemti.com.br/gov/" index.php
           grep -q "https://lemesolucoesemti.com.br/invest/" index.php
+          grep -q "https://lemesolucoesemti.com.br/cloud/" index.php
           grep -q "https://lemeinformatica.com.br/login.php" index.php
+          test -s gov/index.php
+          test -s gov/lib.php
+          test -s gov/api/deputados.php
+          test ! -e gov/private/config.php
 
       - name: Reject runtime secrets
         shell: bash
         run: |
           if git ls-files | grep -E '(^|/)(config\.php|database\.runtime\.php|\.env)$'; then
             echo "Runtime secret file is tracked."
+            exit 1
+          fi
+          if git grep -nE '[A-Fa-f0-9]{48,}'; then
+            echo "Possible long-form secret is tracked."
             exit 1
           fi

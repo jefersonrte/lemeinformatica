@@ -24,6 +24,14 @@ $projects = [
         'local' => false,
     ],
     [
+        'name' => 'Relatorios Power BI',
+        'description' => 'Graficos, indicadores e bases operacionais integradas a API principal.',
+        'url' => 'https://lemesolucoesemti.com.br/powerbi/',
+        'category' => 'Analise de dados',
+        'accent' => 'violet',
+        'local' => false,
+    ],
+    [
         'name' => 'Dados Publicos SC',
         'description' => 'Consulta de deputados, proposicoes e dados legislativos de Santa Catarina.',
         'url' => 'https://lemeinformatica.com.br/gov/',
@@ -44,7 +52,15 @@ $projects = [
         'description' => 'Monitoramento do mercado brasileiro, ativos e sinais operacionais.',
         'url' => 'https://lemesolucoesemti.com.br/invest/',
         'category' => 'Mercado financeiro',
-        'accent' => 'violet',
+        'accent' => 'blue',
+        'local' => false,
+    ],
+    [
+        'name' => 'Nuvem / Nextcloud',
+        'description' => 'Acesso central aos arquivos compartilhados e ao ambiente Nextcloud.',
+        'url' => 'https://lemesolucoesemti.com.br/cloud/',
+        'category' => 'Arquivos e colaboracao',
+        'accent' => 'cyan',
         'local' => false,
     ],
     [
@@ -102,7 +118,7 @@ $projects = [
                     <p class="eyebrow">Menu principal</p>
                     <h2 id="projects-title">Projetos disponiveis</h2>
                 </div>
-                <p><span class="status-dot" aria-hidden="true"></span> Rotas verificadas</p>
+                <p><span class="status-dot" aria-hidden="true"></span> Rotas monitoradas</p>
             </div>
 
             <nav class="project-grid" aria-label="Todos os projetos Leme">

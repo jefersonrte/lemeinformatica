@@ -8,18 +8,22 @@ Sistema central de autenticacao, API e operacao da Leme Informatica.
 - API de animais e alimentos;
 - usuarios e perfis compartilhados entre os dominios;
 - dashboard operacional;
+- dados publicos de Santa Catarina em `gov/`;
 - [Leme Pet](pet/README.md): gestao veterinaria, prontuario e internacao.
 
 ## Producao
 
 - Sistema principal: `https://lemeinformatica.com.br/`
 - Modulo Pet: `https://lemeinformatica.com.br/pet/`
+- Dados Publicos SC: `https://lemeinformatica.com.br/gov/`
 
 ## Central de projetos
 
 A pagina inicial apresenta os projetos ativos da Leme Informatica e da Leme
 Solucoes em TI. A manutencao do catalogo esta documentada em
 [`docs/PROJECT_HUB.md`](docs/PROJECT_HUB.md).
+
+A versao atual do catalogo fica em `PROJECT_HUB_VERSION`.
 
 ## Seguranca
 
