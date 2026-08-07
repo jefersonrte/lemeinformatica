@@ -155,7 +155,7 @@ jobs:
           set net:max-retries 3
           set net:timeout 30
           set net:reconnect-interval-base 3
-          mirror --reverse --transfer-all --overwrite --verbose --no-perms --no-umask --parallel=1 ./ /
+          mirror --reverse --transfer-all --overwrite --verbose --no-perms --no-umask --parallel=1 ./ /public_html
           bye
           LFTP_COMMANDS
 
