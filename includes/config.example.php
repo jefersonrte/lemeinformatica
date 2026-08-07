@@ -7,6 +7,7 @@ const DB_USER = 'USUARIO_DO_BANCO_PRINCIPAL';
 const DB_PASS = 'COLOQUE_A_SENHA_DO_BANCO_PRINCIPAL_AQUI';
 
 const API_KEY = 'COLOQUE_A_CHAVE_FORTE_DA_API_AQUI';
+const USER_SYNC_URL = 'https://lemesolucoesemti.com.br/api/usuarios-sync.php';
 
 const SESSION_NAME = 'LEME_API_SESSAO';
 const CSRF_SESSION_KEY = 'csrf_token';

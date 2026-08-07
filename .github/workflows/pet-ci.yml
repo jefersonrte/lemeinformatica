@@ -53,6 +53,7 @@ jobs:
           node --check pet/frontend/js/modules/commerce.js
           node --check pet/tests/production-smoke.mjs
           node --check frontend/js/home.js
+          node --check frontend/js/usuarios.js
 
       - name: Check Pet 1.1 contracts
         shell: bash
@@ -72,7 +73,7 @@ jobs:
       - name: Check project hub links
         shell: bash
         run: |
-          test "$(tr -d '\r\n' < PROJECT_HUB_VERSION)" = "1.1.2"
+          test "$(tr -d '\r\n' < PROJECT_HUB_VERSION)" = "1.3.0"
           grep -q "https://lemeinformatica.com.br/pet/" index.php
           grep -q "https://lemesolucoesemti.com.br/pet/" index.php
           grep -q "https://lemesolucoesemti.com.br/powerbi/" index.php
@@ -92,6 +93,9 @@ jobs:
           test -s sso-start.php
           test -s api/sso.php
           test -s api/relatorios.php
+          test -s includes/user-provisioning.php
+          grep -q "provision_user_in_integrated_systems" usuarios.php
+          grep -q "usuarios-sync.php" includes/user-provisioning.php
 
       - name: Reject runtime secrets
         shell: bash

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/init.php';
+require_once __DIR__ . '/includes/user-provisioning.php';
 
 if (($GLOBALS['API_AUTH_MODE'] ?? '') === 'session') {
     $sessionUser = current_api_user();
@@ -38,8 +39,14 @@ try {
             'erro' => 'Tabela usuarios_admin nao encontrada. Execute sql/create_auth_tables.sql no banco principal.'
         ], 500);
     }
-
     json_response(['ok' => false, 'erro' => 'Erro ao salvar usuario.'], 500);
+} catch (UserProvisioningException $e) {
+    json_response([
+        'ok' => false,
+        'codigo' => 'SINCRONIZACAO_USUARIO_FALHOU',
+        'erro' => 'O usuario nao foi salvo porque a sincronizacao entre os sistemas falhou.',
+        'detalhe' => $e->getMessage(),
+    ], 502);
 } catch (Throwable $e) {
     json_response(['ok' => false, 'erro' => 'Erro interno ao gerenciar usuarios.'], 500);
 }
@@ -183,20 +190,40 @@ function api_criar_usuario(): void
     $hash = password_hash($data['senha'], PASSWORD_DEFAULT);
     $conn = db();
 
-    $stmt = $conn->prepare('INSERT INTO usuarios_admin (nome, email, senha_hash, perfil, ativo) VALUES (?, ?, ?, ?, ?)');
-    $stmt->bind_param('ssssi', $data['nome'], $data['email'], $hash, $data['perfil'], $data['ativo']);
-    $stmt->execute();
+    $conn->begin_transaction();
 
-    json_response([
-        'ok' => true,
-        'mensagem' => 'Usuario criado com sucesso.',
-        'data' => [
-            'id' => $conn->insert_id,
+    try {
+        $stmt = $conn->prepare('INSERT INTO usuarios_admin (nome, email, senha_hash, perfil, ativo) VALUES (?, ?, ?, ?, ?)');
+        $stmt->bind_param('ssssi', $data['nome'], $data['email'], $hash, $data['perfil'], $data['ativo']);
+        $stmt->execute();
+        $id = (int) $conn->insert_id;
+
+        $sync = provision_user_in_integrated_systems('upsert', [
+            'id' => $id,
             'nome' => $data['nome'],
             'email' => $data['email'],
             'perfil' => $data['perfil'],
             'ativo' => $data['ativo'],
-        ]
+            'senha' => $data['senha'],
+        ]);
+
+        $conn->commit();
+    } catch (Throwable $e) {
+        $conn->rollback();
+        throw $e;
+    }
+
+    json_response([
+        'ok' => true,
+        'mensagem' => 'Usuario criado e sincronizado em todos os sistemas.',
+        'data' => [
+            'id' => $id,
+            'nome' => $data['nome'],
+            'email' => $data['email'],
+            'perfil' => $data['perfil'],
+            'ativo' => $data['ativo'],
+        ],
+        'sincronizacao' => $sync['sistemas'] ?? [],
     ], 201);
 }
 
@@ -204,34 +231,52 @@ function api_atualizar_usuario(): void
 {
     $input = request_json();
     $id = api_usuario_id_from_request($input);
-    api_buscar_usuario($id);
+    $current = api_buscar_usuario($id);
     $data = api_validar_usuario($input, false);
 
     api_ensure_active_admin_remains($id, $data['perfil'], $data['ativo']);
 
     $conn = db();
 
-    if ($data['senha'] !== '') {
-        $hash = password_hash($data['senha'], PASSWORD_DEFAULT);
-        $stmt = $conn->prepare('UPDATE usuarios_admin SET nome = ?, email = ?, perfil = ?, ativo = ?, senha_hash = ? WHERE id = ?');
-        $stmt->bind_param('sssisi', $data['nome'], $data['email'], $data['perfil'], $data['ativo'], $hash, $id);
-    } else {
-        $stmt = $conn->prepare('UPDATE usuarios_admin SET nome = ?, email = ?, perfil = ?, ativo = ? WHERE id = ?');
-        $stmt->bind_param('sssii', $data['nome'], $data['email'], $data['perfil'], $data['ativo'], $id);
-    }
+    $conn->begin_transaction();
 
-    $stmt->execute();
+    try {
+        if ($data['senha'] !== '') {
+            $hash = password_hash($data['senha'], PASSWORD_DEFAULT);
+            $stmt = $conn->prepare('UPDATE usuarios_admin SET nome = ?, email = ?, perfil = ?, ativo = ?, senha_hash = ? WHERE id = ?');
+            $stmt->bind_param('sssisi', $data['nome'], $data['email'], $data['perfil'], $data['ativo'], $hash, $id);
+        } else {
+            $stmt = $conn->prepare('UPDATE usuarios_admin SET nome = ?, email = ?, perfil = ?, ativo = ? WHERE id = ?');
+            $stmt->bind_param('sssii', $data['nome'], $data['email'], $data['perfil'], $data['ativo'], $id);
+        }
+
+        $stmt->execute();
+        $sync = provision_user_in_integrated_systems('upsert', [
+            'id' => $id,
+            'nome' => $data['nome'],
+            'email' => $data['email'],
+            'email_anterior' => $current['email'],
+            'perfil' => $data['perfil'],
+            'ativo' => $data['ativo'],
+            'senha' => $data['senha'],
+        ]);
+        $conn->commit();
+    } catch (Throwable $e) {
+        $conn->rollback();
+        throw $e;
+    }
 
     json_response([
         'ok' => true,
-        'mensagem' => 'Usuario atualizado com sucesso.',
+        'mensagem' => 'Usuario atualizado em todos os sistemas.',
         'data' => [
             'id' => $id,
             'nome' => $data['nome'],
             'email' => $data['email'],
             'perfil' => $data['perfil'],
             'ativo' => $data['ativo'],
-        ]
+        ],
+        'sincronizacao' => $sync['sistemas'] ?? [],
     ]);
 }
 
@@ -244,13 +289,29 @@ function api_desativar_usuario(): void
     api_ensure_active_admin_remains($id, (string) $current['perfil'], 0);
 
     $conn = db();
-    $stmt = $conn->prepare('UPDATE usuarios_admin SET ativo = 0 WHERE id = ?');
-    $stmt->bind_param('i', $id);
-    $stmt->execute();
+    $conn->begin_transaction();
+
+    try {
+        $stmt = $conn->prepare('UPDATE usuarios_admin SET ativo = 0 WHERE id = ?');
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $sync = provision_user_in_integrated_systems('disable', [
+            'id' => $id,
+            'nome' => $current['nome'],
+            'email' => $current['email'],
+            'perfil' => $current['perfil'],
+            'ativo' => 0,
+        ]);
+        $conn->commit();
+    } catch (Throwable $e) {
+        $conn->rollback();
+        throw $e;
+    }
 
     json_response([
         'ok' => true,
-        'mensagem' => 'Usuario desativado com sucesso.',
-        'data' => ['id' => $id]
+        'mensagem' => 'Usuario desativado em todos os sistemas.',
+        'data' => ['id' => $id],
+        'sincronizacao' => $sync['sistemas'] ?? [],
     ]);
 }

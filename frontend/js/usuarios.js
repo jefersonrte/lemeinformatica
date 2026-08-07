@@ -38,7 +38,7 @@ async function api(path, options = {}) {
     const data = await response.json().catch(() => ({ ok: false, erro: 'Resposta invalida da API.' }));
 
     if (!response.ok || data.ok === false) {
-        throw new Error(data.erro || 'Erro ao comunicar com a API.');
+        throw new Error([data.erro, data.detalhe].filter(Boolean).join(' ') || 'Erro ao comunicar com a API.');
     }
 
     return data;
@@ -139,7 +139,7 @@ async function alterarStatusUsuario(id, ativo) {
     setStatus(usuarioStatus, 'Salvando usuario...');
 
     try {
-        await api(`usuarios.php?id=${encodeURIComponent(id)}`, {
+        const response = await api(`usuarios.php?id=${encodeURIComponent(id)}`, {
             method: 'PUT',
             body: JSON.stringify({
                 ...usuarioPayloadBase(usuario),
@@ -147,7 +147,7 @@ async function alterarStatusUsuario(id, ativo) {
             })
         });
         await carregarUsuarios();
-        setStatus(usuarioStatus, ativo ? 'Usuario ativado.' : 'Usuario desativado.', 'ok');
+        setStatus(usuarioStatus, response.mensagem || (ativo ? 'Usuario ativado.' : 'Usuario desativado.'), 'ok');
     } catch (error) {
         setStatus(usuarioStatus, error.message, 'error');
     }
@@ -180,13 +180,13 @@ formUsuario.addEventListener('submit', async (event) => {
     setStatus(usuarioStatus, 'Salvando usuario...');
 
     try {
-        await api(url, {
+        const response = await api(url, {
             method,
             body: JSON.stringify(payload)
         });
         limparFormularioUsuario();
         await carregarUsuarios();
-        setStatus(usuarioStatus, id ? 'Usuario atualizado.' : 'Usuario criado.', 'ok');
+        setStatus(usuarioStatus, response.mensagem || (id ? 'Usuario atualizado.' : 'Usuario criado.'), 'ok');
     } catch (error) {
         setStatus(usuarioStatus, error.message, 'error');
     }

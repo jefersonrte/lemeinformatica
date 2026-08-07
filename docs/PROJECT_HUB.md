@@ -1,7 +1,7 @@
 # Central de projetos
 
-Versao atual: `1.1.2`
-Publicacao: 05/08/2026
+Versao atual: `1.3.0`
+Publicacao: 06/08/2026
 
 ## Objetivo
 
@@ -50,6 +50,8 @@ da pagina atual.
 
 ## Versoes
 
+- `1.3.0`: centraliza o cadastro de usuarios, replica conta, perfil, senha e
+  status no dashboard e provisiona a mesma identidade no Nextcloud.
 - `1.1.2`: adiciona compatibilidade com o repositorio montado pela Hostinger
   dentro de `/pet`, preservando a URL publica original do modulo.
 - `1.1.1`: estende o SSO central para o Power BI, mantendo uma unica senha nos

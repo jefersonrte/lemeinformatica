@@ -130,6 +130,7 @@ jobs:
               'https://lemesolucoesemti.com.br',
               'https://www.lemesolucoesemti.com.br',
           ];
+          const USER_SYNC_URL = 'https://lemesolucoesemti.com.br/api/usuarios-sync.php';
           PHP_DEFAULTS;
 
           $target = getenv('CONFIG_TARGET');
