@@ -73,7 +73,7 @@ $projects = [
     [
         'name' => 'Administracao e API',
         'description' => 'Acesso protegido aos cadastros, usuarios e servicos de integracao.',
-        'url' => 'https://lemeinformatica.com.br/login.php',
+        'url' => 'https://lemeinformatica.com.br/pet/login.php',
         'category' => 'Gestao central',
         'accent' => 'blue',
         'local' => true,

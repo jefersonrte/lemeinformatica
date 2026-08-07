@@ -155,7 +155,7 @@ jobs:
           set net:max-retries 3
           set net:timeout 30
           set net:reconnect-interval-base 3
-          mirror --reverse --transfer-all --overwrite --verbose --no-perms --no-umask --parallel=1 ./ /public_html
+          mirror --reverse --transfer-all --overwrite --verbose --no-perms --no-umask --parallel=1 ./ /
           bye
           LFTP_COMMANDS
 
@@ -180,7 +180,7 @@ jobs:
           for attempt in $(seq 1 10); do
             if curl --silent --show-error --fail --max-time 30 \
               -H "X-API-KEY: $APP_API_KEY" \
-              https://lemeinformatica.com.br/health.php \
+              https://lemeinformatica.com.br/pet/health.php \
               -o .health.json; then
               published_version="$(php -r '$data = json_decode(file_get_contents(".health.json"), true); echo is_array($data) && isset($data["versao_pet"]) ? $data["versao_pet"] : "";' || true)"
             fi
@@ -192,4 +192,6 @@ jobs:
           done
 
           test "$published_version" = "$expected_version"
+          test "$(curl --silent --show-error --fail --max-time 30 \
+            https://lemeinformatica.com.br/pet/PROJECT_HUB_VERSION | tr -d '\r\n')" = "1.3.0"
           echo "$selected arquivos sincronizados. Versao $published_version confirmada."

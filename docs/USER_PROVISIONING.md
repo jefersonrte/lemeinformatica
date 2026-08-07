@@ -4,9 +4,10 @@ Versao: `1.3.0`
 
 ## Fonte de verdade
 
-`lemeinformatica.com.br/usuarios.php` e a fonte de verdade das identidades. A
-tela `usuarios-admin.php` e o painel administrativo do segundo dominio usam essa
-mesma API. Pet, Dashboard Pet e Power BI recebem a identidade central por SSO.
+`lemeinformatica.com.br/pet/usuarios.php` e a fonte de verdade das identidades
+na montagem Git da Hostinger. A tela `/pet/usuarios-admin.php` e o painel
+administrativo do segundo dominio usam essa mesma API. Pet, Dashboard Pet e
+Power BI recebem a identidade central por SSO.
 
 ## Fluxo de criacao
 

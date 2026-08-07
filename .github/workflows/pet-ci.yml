@@ -81,7 +81,7 @@ jobs:
           grep -q "https://lemesolucoesemti.com.br/gov/" index.php
           grep -q "https://lemesolucoesemti.com.br/invest/" index.php
           grep -q "https://lemesolucoesemti.com.br/cloud/" index.php
-          grep -q "https://lemeinformatica.com.br/login.php" index.php
+          grep -q "https://lemeinformatica.com.br/pet/login.php" index.php
           test -s gov/index.php
           test -s gov/lib.php
           test -s gov/api/deputados.php
