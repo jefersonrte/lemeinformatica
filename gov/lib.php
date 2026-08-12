@@ -159,6 +159,9 @@ function govEnsureSchema(PDO $pdo): void
             situacao_codigo INT NULL,
             situacao_icone VARCHAR(140) NULL,
             categoria VARCHAR(20) NOT NULL DEFAULT "outros",
+            setor VARCHAR(20) NOT NULL DEFAULT "outros",
+            fonte VARCHAR(30) NOT NULL DEFAULT "wbc",
+            codigo_ibge VARCHAR(7) NULL,
             em_andamento TINYINT(1) NOT NULL DEFAULT 0,
             data_inicio DATETIME NULL,
             data_fim DATETIME NULL,
@@ -172,10 +175,51 @@ function govEnsureSchema(PDO $pdo): void
             UNIQUE KEY uq_licitacao_cidade_processo (cidade_slug, codigo_processo),
             KEY idx_licitacao_andamento_cidade (em_andamento, cidade_slug),
             KEY idx_licitacao_categoria (categoria),
+            KEY idx_licitacao_setor (setor),
             KEY idx_licitacao_data_fim (data_fim),
             FULLTEXT KEY ftx_licitacao_busca (objeto, orgao, unidade)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
     );
+
+    govEnsureColumn($pdo, 'licitacoes_municipais', 'setor', 'VARCHAR(20) NOT NULL DEFAULT "outros" AFTER categoria');
+    govEnsureColumn($pdo, 'licitacoes_municipais', 'fonte', 'VARCHAR(30) NOT NULL DEFAULT "wbc" AFTER setor');
+    govEnsureColumn($pdo, 'licitacoes_municipais', 'codigo_ibge', 'VARCHAR(7) NULL AFTER fonte');
+    govEnsureIndex($pdo, 'licitacoes_municipais', 'idx_licitacao_setor', 'setor');
+
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS sincronizacoes_licitacoes (
+            cidade_slug VARCHAR(30) NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT "pendente",
+            ultimo_inicio DATETIME NULL,
+            ultimo_sucesso DATETIME NULL,
+            total_registros INT UNSIGNED NOT NULL DEFAULT 0,
+            mensagem VARCHAR(500) NULL,
+            PRIMARY KEY (cidade_slug),
+            KEY idx_sincronizacoes_licitacoes_sucesso (ultimo_sucesso)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
+}
+
+function govEnsureColumn(PDO $pdo, string $table, string $column, string $definition): void
+{
+    if (!preg_match('/^[a-z0-9_]+$/i', $table) || !preg_match('/^[a-z0-9_]+$/i', $column)) {
+        throw new InvalidArgumentException('Identificador de banco invalido.');
+    }
+    $statement = $pdo->query('SHOW COLUMNS FROM `' . $table . '` LIKE ' . $pdo->quote($column));
+    if (!$statement->fetch()) {
+        $pdo->exec('ALTER TABLE `' . $table . '` ADD COLUMN `' . $column . '` ' . $definition);
+    }
+}
+
+function govEnsureIndex(PDO $pdo, string $table, string $index, string $columns): void
+{
+    if (!preg_match('/^[a-z0-9_]+$/i', $table) || !preg_match('/^[a-z0-9_]+$/i', $index)) {
+        throw new InvalidArgumentException('Identificador de indice invalido.');
+    }
+    $statement = $pdo->query('SHOW INDEX FROM `' . $table . '` WHERE Key_name = ' . $pdo->quote($index));
+    if (!$statement->fetch()) {
+        $pdo->exec('ALTER TABLE `' . $table . '` ADD KEY `' . $index . '` (' . $columns . ')');
+    }
 }
 
 function govApiUrl(string $path, array $query = []): string
@@ -248,7 +292,7 @@ function govFetchRecords(string $url, string $context, bool $required = false): 
 
 function govProcurementCategory(string $object): string
 {
-    $normalized = mb_strtolower($object, 'UTF-8');
+    $normalized = govLower($object);
     $serviceTerms = [
         'contratacao', 'contratação', 'prestacao', 'prestação', 'servico', 'serviço',
         'manutencao', 'manutenção', 'locacao', 'locação', 'consultoria', 'obra',
@@ -268,6 +312,62 @@ function govProcurementCategory(string $object): string
     foreach ($productTerms as $term) {
         if (str_contains($normalized, $term)) {
             return 'produtos';
+        }
+    }
+    return 'outros';
+}
+
+function govLower(string $text): string
+{
+    return function_exists('mb_strtolower')
+        ? mb_strtolower($text, 'UTF-8')
+        : strtolower($text);
+}
+
+function govProcurementSector(string $text): string
+{
+    $normalized = govLower($text);
+    if (function_exists('iconv')) {
+        $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $normalized);
+        if (is_string($ascii) && $ascii !== '') {
+            $normalized = $ascii;
+        }
+    }
+    $normalized = preg_replace('/[^a-z0-9]+/', ' ', $normalized) ?? $normalized;
+
+    $sectors = [
+        'ti' => [
+            'tecnologia da informacao', 'informatica', 'software', 'sistema de informacao',
+            'sistema informatizado', 'desenvolvimento de sistema', 'licenca de uso', 'licenciamento',
+            'computador', 'notebook', 'tablet', 'servidor de rede', 'data center', 'datacenter',
+            'switch', 'roteador', 'firewall', 'backup', 'nuvem', 'cloud', 'link de internet',
+            'link de dados', 'fibra optica', 'telecomunicacao', 'telefonia ip', 'voip',
+            'impressora', 'scanner', 'toner', 'cartucho', 'monitor', 'nobreak', 'rede logica',
+            'cabeamento estruturado', 'certificado digital', 'suporte tecnico', 'help desk',
+            'videoconferencia', 'processamento de dados', 'seguranca da informacao',
+        ],
+        'obras' => [
+            'obra', 'engenharia', 'construcao', 'pavimentacao', 'drenagem', 'reforma',
+            'manutencao predial', 'asfalto', 'ponte', 'calcada', 'edificacao', 'arquitetura',
+            'terraplenagem', 'saneamento', 'iluminacao publica', 'rede eletrica',
+        ],
+        'saude' => [
+            'saude', 'medicamento', 'hospital', 'odontolog', 'medico', 'enfermagem',
+            'ambulancia', 'laboratorio', 'exame', 'unidade basica', 'ubs', 'caps', 'farmacia',
+            'oxigenio medicinal', 'material hospitalar', 'equipamento hospitalar',
+        ],
+        'seguranca' => [
+            'seguranca publica', 'policia', 'guarda municipal', 'videomonitoramento',
+            'video monitoramento', 'camera de seguranca', 'armamento', 'municao', 'bombeiro',
+            'defesa civil', 'vigilancia patrimonial', 'alarme', 'controle de acesso',
+        ],
+    ];
+
+    foreach ($sectors as $sector => $terms) {
+        foreach ($terms as $term) {
+            if (str_contains($normalized, $term)) {
+                return $sector;
+            }
         }
     }
     return 'outros';
@@ -375,21 +475,69 @@ function govOpenProcurements(): array
     ];
 }
 
-function govWbcSources(): array
+function govProcurementSources(): array
 {
     return [
         'florianopolis' => [
             'nome' => 'Florianópolis',
+            'driver' => 'wbc',
+            'codigoIbge' => '4205407',
             'base' => 'https://wbc.pmf.sc.gov.br/portal',
             'portal' => 'https://wbc.pmf.sc.gov.br/portal/Mural.aspx',
             'resolve' => 'wbc.pmf.sc.gov.br:443:200.192.64.11',
         ],
         'sao-jose' => [
             'nome' => 'São José',
+            'driver' => 'wbc',
+            'codigoIbge' => '4216602',
             'base' => 'https://egov.paradigmabs.com.br/saojose/portal',
             'portal' => 'https://egov.paradigmabs.com.br/saojose/portal/Mural.aspx',
         ],
+        'palhoca' => [
+            'nome' => 'Palhoça',
+            'driver' => 'pncp',
+            'codigoIbge' => '4211900',
+            'portal' => 'https://palhoca.atende.net/autoatendimento/servicos/consulta-de-licitacoes',
+        ],
+        'biguacu' => [
+            'nome' => 'Biguaçu',
+            'driver' => 'pncp',
+            'codigoIbge' => '4202305',
+            'portal' => 'https://www.bigua.sc.gov.br/estrutura/pagina-11463/pagina-11463-lic/',
+        ],
+        'governador-celso-ramos' => [
+            'nome' => 'Governador Celso Ramos',
+            'driver' => 'pncp',
+            'codigoIbge' => '4206009',
+            'portal' => 'https://governadorcelsoramos.sc.gov.br/licitacoes/',
+        ],
+        'tijucas' => [
+            'nome' => 'Tijucas',
+            'driver' => 'pncp',
+            'codigoIbge' => '4218004',
+            'portal' => 'https://tijucas.atende.net/transparencia/item/licitacoes-gerais',
+        ],
+        'santo-amaro-da-imperatriz' => [
+            'nome' => 'Santo Amaro da Imperatriz',
+            'driver' => 'pncp',
+            'codigoIbge' => '4215703',
+            'portal' => 'https://www.santoamaro.sc.gov.br/licitacoes/2',
+        ],
+        'antonio-carlos' => [
+            'nome' => 'Antônio Carlos',
+            'driver' => 'pncp',
+            'codigoIbge' => '4201208',
+            'portal' => 'https://antoniocarlos.sc.gov.br/licitacoes/',
+        ],
     ];
+}
+
+function govWbcSources(): array
+{
+    return array_filter(
+        govProcurementSources(),
+        static fn(array $source): bool => ($source['driver'] ?? '') === 'wbc'
+    );
 }
 
 function govFetchWbcProcesses(array $source, int $viewType, int $vision = 0): array
@@ -590,17 +738,216 @@ function govWbcSqlDate($value): ?string
     return null;
 }
 
+function govFetchPncpOpenProcurements(array $source): array
+{
+    $records = [];
+    $page = 1;
+    $totalPages = 1;
+    do {
+        $url = GOV_PNCP_PROPOSTAS_API . '?' . http_build_query([
+            'dataFinal' => date('Ymd'),
+            'codigoMunicipioIbge' => $source['codigoIbge'],
+            'pagina' => $page,
+            'tamanhoPagina' => 50,
+        ], '', '&', PHP_QUERY_RFC3986);
+        $payload = govFetchPncpJsonWithRetry($url, 'o PNCP para ' . $source['nome']);
+        $items = is_array($payload['data'] ?? null) ? $payload['data'] : [];
+        foreach ($items as $item) {
+            if (is_array($item)) {
+                $records[] = $item;
+            }
+        }
+        $totalPages = max(1, min(20, (int) ($payload['totalPaginas'] ?? 1)));
+        $page++;
+        if ($page <= $totalPages) {
+            usleep(250000);
+        }
+    } while ($page <= $totalPages);
+    return $records;
+}
+
+function govFetchPncpJsonWithRetry(string $url, string $context): array
+{
+    if (!function_exists('curl_init')) {
+        throw new RuntimeException('A extensao cURL nao esta disponivel no servidor.');
+    }
+    $lastError = 'resposta indisponivel';
+    for ($attempt = 1; $attempt <= 4; $attempt++) {
+        $curl = curl_init($url);
+        $options = [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_HTTPHEADER => [
+                'Accept: application/json',
+                'User-Agent: LemeGovLicitacoes/2.0 (+https://lemeinformatica.com.br/gov/)',
+            ],
+        ];
+        if (defined('CURLOPT_PROTOCOLS') && defined('CURLPROTO_HTTPS')) {
+            $options[CURLOPT_PROTOCOLS] = CURLPROTO_HTTPS;
+        }
+        curl_setopt_array($curl, $options);
+        $body = curl_exec($curl);
+        $error = curl_error($curl);
+        $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+
+        if ($body !== false && $error === '' && $status === 200) {
+            $payload = json_decode($body, true);
+            if (is_array($payload)) {
+                return $payload;
+            }
+            $lastError = 'JSON invalido';
+        } else {
+            $lastError = $error !== '' ? $error : 'HTTP ' . $status;
+        }
+        if (!in_array($status, [0, 429, 500, 502, 503, 504], true)) {
+            break;
+        }
+        sleep($attempt * 2);
+    }
+    throw new RuntimeException('Falha ao consultar ' . $context . ': ' . $lastError . '.');
+}
+
+function govImportPncpProcurements(PDO $pdo, string $slug, array $source): array
+{
+    @set_time_limit(180);
+    $records = govFetchPncpOpenProcurements($source);
+    $statement = $pdo->prepare(
+        'INSERT INTO licitacoes_municipais (
+            cidade_slug, cidade_nome, codigo_processo, codigo_modulo, codigo_edital,
+            numero_processo, numero_edital, orgao, unidade, objeto, modalidade,
+            tipo_modalidade, situacao, situacao_codigo, situacao_icone, categoria,
+            setor, fonte, codigo_ibge, em_andamento, data_inicio, data_fim,
+            valor_estimado, url_processo, dados_json, ativo, atualizado_em
+        ) VALUES (
+            :cidade_slug, :cidade_nome, :codigo_processo, 0, :codigo_edital,
+            :numero_processo, :numero_edital, :orgao, :unidade, :objeto, :modalidade,
+            :tipo_modalidade, :situacao, NULL, NULL, :categoria,
+            :setor, "pncp", :codigo_ibge, 1, :data_inicio, :data_fim,
+            :valor_estimado, :url_processo, :dados_json, 1, NOW()
+        ) ON DUPLICATE KEY UPDATE
+            cidade_nome = VALUES(cidade_nome), codigo_edital = VALUES(codigo_edital),
+            numero_processo = VALUES(numero_processo), numero_edital = VALUES(numero_edital),
+            orgao = VALUES(orgao), unidade = VALUES(unidade), objeto = VALUES(objeto),
+            modalidade = VALUES(modalidade), tipo_modalidade = VALUES(tipo_modalidade),
+            situacao = VALUES(situacao), categoria = VALUES(categoria), setor = VALUES(setor),
+            fonte = "pncp", codigo_ibge = VALUES(codigo_ibge), em_andamento = 1,
+            data_inicio = VALUES(data_inicio), data_fim = VALUES(data_fim),
+            valor_estimado = VALUES(valor_estimado), url_processo = VALUES(url_processo),
+            dados_json = VALUES(dados_json), ativo = 1, atualizado_em = NOW()'
+    );
+
+    $counts = ['total' => 0, 'emAndamento' => 0, $slug => 0, 'ti' => 0];
+    try {
+        $pdo->beginTransaction();
+        $deactivate = $pdo->prepare('UPDATE licitacoes_municipais SET ativo = 0, em_andamento = 0 WHERE cidade_slug = :cidade');
+        $deactivate->execute([':cidade' => $slug]);
+        foreach ($records as $record) {
+            $organization = is_array($record['orgaoEntidade'] ?? null) ? $record['orgaoEntidade'] : [];
+            $unit = is_array($record['unidadeOrgao'] ?? null) ? $record['unidadeOrgao'] : [];
+            $control = trim((string) ($record['numeroControlePNCP'] ?? ''));
+            if ($control === '') {
+                $control = hash('sha256', $slug . '|' . json_encode($record));
+            }
+            $processId = (int) hexdec(substr(hash('sha256', $control), 0, 12));
+            $cnpj = preg_replace('/\D+/', '', (string) ($organization['cnpj'] ?? ''));
+            $year = (int) ($record['anoCompra'] ?? 0);
+            $sequence = (int) ($record['sequencialCompra'] ?? 0);
+            $processUrl = $cnpj !== '' && $year > 0 && $sequence > 0
+                ? sprintf('https://pncp.gov.br/app/editais/%s/%d/%d', $cnpj, $year, $sequence)
+                : $source['portal'];
+            $object = trim((string) ($record['objetoCompra'] ?? '')) ?: 'Objeto não informado pelo PNCP.';
+            $sectorText = implode(' ', [$object, $organization['razaoSocial'] ?? '', $unit['nomeUnidade'] ?? '']);
+            $sector = govProcurementSector($sectorText);
+            $statement->execute([
+                ':cidade_slug' => $slug,
+                ':cidade_nome' => $source['nome'],
+                ':codigo_processo' => $processId,
+                ':codigo_edital' => $sequence > 0 ? $sequence : null,
+                ':numero_processo' => ($record['processo'] ?? null) ?: null,
+                ':numero_edital' => ($record['numeroCompra'] ?? null) ?: null,
+                ':orgao' => ($organization['razaoSocial'] ?? null) ?: $source['nome'],
+                ':unidade' => ($unit['nomeUnidade'] ?? null) ?: null,
+                ':objeto' => $object,
+                ':modalidade' => ($record['modalidadeNome'] ?? null) ?: 'Não informada',
+                ':tipo_modalidade' => ($record['modoDisputaNome'] ?? null) ?: null,
+                ':situacao' => ($record['situacaoCompraNome'] ?? null) ?: 'Recebendo propostas',
+                ':categoria' => govProcurementCategory($object),
+                ':setor' => $sector,
+                ':codigo_ibge' => $source['codigoIbge'],
+                ':data_inicio' => govNormalizeSqlDate($record['dataAberturaProposta'] ?? null),
+                ':data_fim' => govNormalizeSqlDate($record['dataEncerramentoProposta'] ?? null),
+                ':valor_estimado' => (float) ($record['valorTotalEstimado'] ?? 0),
+                ':url_processo' => $processUrl,
+                ':dados_json' => json_encode($record, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            ]);
+            $counts['total']++;
+            $counts['emAndamento']++;
+            $counts[$slug]++;
+            if ($sector === 'ti') {
+                $counts['ti']++;
+            }
+        }
+        govLogImport($pdo, 'sucesso', $counts['total'], sprintf(
+            '%d licitacoes abertas de %s importadas do PNCP (%d de TI).',
+            $counts['total'],
+            $source['nome'],
+            $counts['ti']
+        ));
+        $pdo->commit();
+        return $counts;
+    } catch (Throwable $exception) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $exception;
+    }
+}
+
+function govNormalizeSqlDate($value): ?string
+{
+    if (!is_string($value) || trim($value) === '') {
+        return null;
+    }
+    $timestamp = strtotime($value);
+    return $timestamp === false ? null : date('Y-m-d H:i:s', $timestamp);
+}
+
 function govImportMunicipalProcurements(PDO $pdo, ?string $onlyCity = null): array
 {
     @set_time_limit(240);
+    $catalog = govProcurementSources();
+    if ($onlyCity === null) {
+        $combined = ['total' => 0, 'emAndamento' => 0, 'ti' => 0];
+        foreach (array_keys($catalog) as $slug) {
+            $cityCounts = govImportMunicipalProcurements($pdo, $slug);
+            foreach ($cityCounts as $key => $value) {
+                $combined[$key] = ($combined[$key] ?? 0) + (int) $value;
+            }
+        }
+        return $combined;
+    }
+    if (!isset($catalog[$onlyCity])) {
+        throw new InvalidArgumentException('Cidade invalida para a importacao de licitacoes.');
+    }
+    $selectedSource = $catalog[$onlyCity];
+    govRecordProcurementSync($pdo, $onlyCity, 'executando', 0, 'Sincronizacao iniciada.');
+    if (($selectedSource['driver'] ?? '') === 'pncp') {
+        try {
+            $pncpCounts = govImportPncpProcurements($pdo, $onlyCity, $selectedSource);
+            govRecordProcurementSync($pdo, $onlyCity, 'sucesso', $pncpCounts['total'], 'Sincronizacao PNCP concluida.');
+            return $pncpCounts;
+        } catch (Throwable $exception) {
+            govRecordProcurementSync($pdo, $onlyCity, 'erro', 0, $exception->getMessage());
+            throw $exception;
+        }
+    }
+
     $snapshots = [];
     $sources = govWbcSources();
-    if ($onlyCity !== null) {
-        if (!isset($sources[$onlyCity])) {
-            throw new InvalidArgumentException('Cidade invalida para a importacao de licitacoes.');
-        }
-        $sources = [$onlyCity => $sources[$onlyCity]];
-    }
+    $sources = [$onlyCity => $sources[$onlyCity]];
     foreach ($sources as $slug => $source) {
         $views = govFetchWbcProcessViews($source);
         $editorRecords = $views['editor'];
@@ -643,14 +990,14 @@ function govImportMunicipalProcurements(PDO $pdo, ?string $onlyCity = null): arr
             cidade_slug, cidade_nome, codigo_processo, codigo_modulo, codigo_edital,
             numero_processo, numero_edital, orgao, unidade, objeto, modalidade,
             tipo_modalidade, situacao, situacao_codigo, situacao_icone, categoria,
-            em_andamento, data_inicio, data_fim, valor_estimado, url_processo,
-            dados_json, ativo, atualizado_em
+            setor, fonte, codigo_ibge, em_andamento, data_inicio, data_fim,
+            valor_estimado, url_processo, dados_json, ativo, atualizado_em
         ) VALUES (
             :cidade_slug, :cidade_nome, :codigo_processo, :codigo_modulo, :codigo_edital,
             :numero_processo, :numero_edital, :orgao, :unidade, :objeto, :modalidade,
             :tipo_modalidade, :situacao, :situacao_codigo, :situacao_icone, :categoria,
-            :em_andamento, :data_inicio, :data_fim, :valor_estimado, :url_processo,
-            :dados_json, 1, NOW()
+            :setor, "wbc", :codigo_ibge, :em_andamento, :data_inicio, :data_fim,
+            :valor_estimado, :url_processo, :dados_json, 1, NOW()
         ) ON DUPLICATE KEY UPDATE
             cidade_nome = VALUES(cidade_nome), codigo_modulo = VALUES(codigo_modulo),
             codigo_edital = VALUES(codigo_edital), numero_processo = VALUES(numero_processo),
@@ -658,13 +1005,14 @@ function govImportMunicipalProcurements(PDO $pdo, ?string $onlyCity = null): arr
             objeto = VALUES(objeto), modalidade = VALUES(modalidade),
             tipo_modalidade = VALUES(tipo_modalidade), situacao = VALUES(situacao),
             situacao_codigo = VALUES(situacao_codigo), situacao_icone = VALUES(situacao_icone),
-            categoria = VALUES(categoria), em_andamento = VALUES(em_andamento),
+            categoria = VALUES(categoria), setor = VALUES(setor), fonte = "wbc",
+            codigo_ibge = VALUES(codigo_ibge), em_andamento = VALUES(em_andamento),
             data_inicio = VALUES(data_inicio), data_fim = VALUES(data_fim),
             valor_estimado = VALUES(valor_estimado), url_processo = VALUES(url_processo),
             dados_json = VALUES(dados_json), ativo = 1, atualizado_em = NOW()'
     );
 
-    $counts = ['total' => 0, 'emAndamento' => 0, 'florianopolis' => 0, 'sao-jose' => 0];
+    $counts = ['total' => 0, 'emAndamento' => 0, 'ti' => 0, $onlyCity => 0];
     try {
         $pdo->beginTransaction();
         if ($onlyCity !== null) {
@@ -708,6 +1056,8 @@ function govImportMunicipalProcurements(PDO $pdo, ?string $onlyCity = null): arr
                     ':situacao_codigo' => isset($record['nCdSituacao']) ? (int) $record['nCdSituacao'] : null,
                     ':situacao_icone' => ($record['sDsImagem'] ?? null) ?: null,
                     ':categoria' => govProcurementCategory($object),
+                    ':setor' => govProcurementSector($object . ' ' . (($record['sNmEntidade'] ?? '') ?: '')),
+                    ':codigo_ibge' => $source['codigoIbge'],
                     ':em_andamento' => $ongoing,
                     ':data_inicio' => govWbcSqlDate($record['tDtInicial'] ?? ($record['sDtInicialFormatada'] ?? null)),
                     ':data_fim' => govWbcSqlDate($record['tDtFinal'] ?? ($record['sDtFinalFormatada'] ?? null)),
@@ -718,21 +1068,18 @@ function govImportMunicipalProcurements(PDO $pdo, ?string $onlyCity = null): arr
                 $counts['total']++;
                 $counts[$slug]++;
                 $counts['emAndamento'] += $ongoing;
+                $counts['ti'] += govProcurementSector($object . ' ' . (($record['sNmEntidade'] ?? '') ?: '')) === 'ti' ? 1 : 0;
             }
         }
         govLogImport(
             $pdo,
             'sucesso',
             $counts['total'],
-            sprintf(
-                '%d licitacoes municipais importadas (%d em andamento; %d Florianopolis; %d Sao Jose).',
-                $counts['total'],
-                $counts['emAndamento'],
-                $counts['florianopolis'],
-                $counts['sao-jose']
-            )
+            sprintf('%d licitacoes de %s importadas (%d em andamento; %d de TI).',
+                $counts['total'], $selectedSource['nome'], $counts['emAndamento'], $counts['ti'])
         );
         $pdo->commit();
+        govRecordProcurementSync($pdo, $onlyCity, 'sucesso', $counts['total'], 'Sincronizacao WBC concluida.');
         return $counts;
     } catch (Throwable $exception) {
         if ($pdo->inTransaction()) {
@@ -742,8 +1089,80 @@ function govImportMunicipalProcurements(PDO $pdo, ?string $onlyCity = null): arr
             govLogImport($pdo, 'erro', 0, $exception->getMessage());
         } catch (Throwable $ignored) {
         }
+        govRecordProcurementSync($pdo, $onlyCity, 'erro', 0, $exception->getMessage());
         throw $exception;
     }
+}
+
+function govRecordProcurementSync(PDO $pdo, string $slug, string $status, int $total, string $message): void
+{
+    $statement = $pdo->prepare(
+        'INSERT INTO sincronizacoes_licitacoes (
+            cidade_slug, status, ultimo_inicio, ultimo_sucesso, total_registros, mensagem
+         ) VALUES (
+            :cidade, :status, NOW(), IF(:sucesso = 1, NOW(), NULL), :total, :mensagem
+         ) ON DUPLICATE KEY UPDATE
+            status = VALUES(status),
+            ultimo_inicio = IF(VALUES(status) = "executando", NOW(), ultimo_inicio),
+            ultimo_sucesso = IF(VALUES(status) = "sucesso", NOW(), ultimo_sucesso),
+            total_registros = IF(VALUES(status) = "sucesso", VALUES(total_registros), total_registros),
+            mensagem = VALUES(mensagem)'
+    );
+    $statement->execute([
+        ':cidade' => $slug,
+        ':status' => $status,
+        ':sucesso' => $status === 'sucesso' ? 1 : 0,
+        ':total' => max(0, $total),
+        ':mensagem' => mb_substr($message, 0, 500),
+    ]);
+}
+
+function govAutoSyncProcurements(PDO $pdo, int $freshHours = 6): array
+{
+    $lock = (int) $pdo->query("SELECT GET_LOCK('gov_licitacoes_auto_sync', 0)")->fetchColumn();
+    if ($lock !== 1) {
+        return ['executado' => false, 'motivo' => 'outra sincronizacao em andamento'];
+    }
+    try {
+        foreach (govProcurementSources() as $slug => $source) {
+            $insert = $pdo->prepare(
+                'INSERT IGNORE INTO sincronizacoes_licitacoes (cidade_slug, status, mensagem)
+                 VALUES (:cidade, "pendente", "Aguardando primeira sincronizacao.")'
+            );
+            $insert->execute([':cidade' => $slug]);
+        }
+        $freshHours = max(1, min(24, $freshHours));
+        $statement = $pdo->prepare(
+            'SELECT cidade_slug, ultimo_sucesso
+             FROM sincronizacoes_licitacoes
+             WHERE ultimo_sucesso IS NULL OR ultimo_sucesso < DATE_SUB(NOW(), INTERVAL ' . $freshHours . ' HOUR)
+             ORDER BY COALESCE(ultimo_sucesso, "2000-01-01") ASC, cidade_slug ASC
+             LIMIT 1'
+        );
+        $statement->execute();
+        $row = $statement->fetch();
+        if (!$row) {
+            return ['executado' => false, 'motivo' => 'todas as cidades estao atualizadas'];
+        }
+        $slug = (string) $row['cidade_slug'];
+        $counts = govImportMunicipalProcurements($pdo, $slug);
+        return ['executado' => true, 'cidade' => $slug, 'totais' => $counts];
+    } finally {
+        $pdo->query("SELECT RELEASE_LOCK('gov_licitacoes_auto_sync')");
+    }
+}
+
+function govReclassifyProcurements(PDO $pdo): int
+{
+    $rows = $pdo->query('SELECT id, objeto, orgao, unidade FROM licitacoes_municipais')->fetchAll();
+    $update = $pdo->prepare('UPDATE licitacoes_municipais SET setor = :setor WHERE id = :id');
+    $total = 0;
+    foreach ($rows as $row) {
+        $sector = govProcurementSector(implode(' ', [$row['objeto'], $row['orgao'], $row['unidade']]));
+        $update->execute([':setor' => $sector, ':id' => $row['id']]);
+        $total++;
+    }
+    return $total;
 }
 
 function govFetchSource(): array
