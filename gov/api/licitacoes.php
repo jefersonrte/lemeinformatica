@@ -53,7 +53,7 @@ function tenderApiList(PDO $pdo): never
         $parameters[':cidade'] = $city;
     }
     if ($situation === 'andamento') {
-        $conditions[] = 'em_andamento = 1';
+        $conditions[] = 'em_andamento = 1 AND (data_fim IS NULL OR data_fim >= NOW())';
     } elseif ($situation === 'encerradas') {
         $conditions[] = 'em_andamento = 0';
     }
@@ -106,7 +106,7 @@ function tenderApiList(PDO $pdo): never
 
     $summary = $pdo->query(
         'SELECT COUNT(*) AS total,
-                SUM(em_andamento = 1) AS emAndamento,
+                SUM(em_andamento = 1 AND (data_fim IS NULL OR data_fim >= NOW())) AS emAndamento,
                 SUM(setor = "ti") AS ti,
                 SUM(setor = "obras") AS obras,
                 SUM(setor = "saude") AS saude,
@@ -118,8 +118,8 @@ function tenderApiList(PDO $pdo): never
 
     $cityRows = $pdo->query(
         'SELECT cidade_slug, cidade_nome, COUNT(*) AS total,
-                SUM(em_andamento = 1) AS emAndamento,
-                SUM(setor = "ti" AND em_andamento = 1) AS tiEmAndamento,
+                SUM(em_andamento = 1 AND (data_fim IS NULL OR data_fim >= NOW())) AS emAndamento,
+                SUM(setor = "ti" AND em_andamento = 1 AND (data_fim IS NULL OR data_fim >= NOW())) AS tiEmAndamento,
                 MAX(atualizado_em) AS atualizadoEm
          FROM licitacoes_municipais
          WHERE ativo = 1
