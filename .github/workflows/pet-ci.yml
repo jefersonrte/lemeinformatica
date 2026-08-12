@@ -77,6 +77,8 @@ jobs:
         run: |
           test "$(tr -d '\r\n' < PROJECT_HUB_VERSION)" = "1.4.0"
           grep -q "https://lemeinformatica.com.br/orca-funcional-v1.2.1/" index.php
+          test -s orca-funcional-v1.2.1/provision-admin.php
+          grep -q "HTTP_X_MIGRATION_KEY" orca-funcional-v1.2.1/provision-admin.php
           grep -q "https://lemeinformatica.com.br/orca-funcional-v1.2.0/" index.php
           grep -q "https://lemeinformatica.com.br/orca-v1.2.0/" index.php
           grep -q "https://lemeinformatica.com.br/orca/" index.php
