@@ -1,5 +1,11 @@
 # Central de projetos 1.4.0
 
+## Hotfix de compatibilidade
+
+- A rota histórica `orca-funcional-v1.2.0` agora recupera o formulário de
+  login quando a sessão expira, mantendo a validação CSRF ativa e evitando a
+  página branca `Token CSRF inválido.`.
+
 Publicacao: 12/08/2026
 
 ## Alteracoes

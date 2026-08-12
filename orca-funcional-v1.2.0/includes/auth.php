@@ -136,17 +136,27 @@ function getFlash(): ?array {
 
 function csrf(): string {
     if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        return refreshCsrf();
     }
     return $_SESSION['csrf_token'];
 }
 
-function verifyCsrf(): void {
+function refreshCsrf(): string {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    return $_SESSION['csrf_token'];
+}
+
+function verifyCsrf(bool $abortOnFailure = true): bool {
     $token = $_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
-    if (!hash_equals(csrf(), $token)) {
+    $sessionToken = $_SESSION['csrf_token'] ?? '';
+    $valid = is_string($token) && is_string($sessionToken)
+        && $token !== '' && $sessionToken !== ''
+        && hash_equals($sessionToken, $token);
+    if (!$valid && $abortOnFailure) {
         http_response_code(403);
         die('Token CSRF inválido.');
     }
+    return $valid;
 }
 
 function destroySession(): void {

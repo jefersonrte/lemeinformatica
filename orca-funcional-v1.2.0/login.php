@@ -9,48 +9,52 @@ if (!empty($_SESSION['user_id'])) {
 $erro = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    verifyCsrf();
-    $email = trim($_POST['email'] ?? '');
-    $senha = $_POST['senha'] ?? '';
-    $lockedUntil = (int) ($_SESSION['login_locked_until'] ?? 0);
-
-    if ($lockedUntil > time()) {
-        $erro = 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($senha) < 1) {
-        $erro = 'Preencha e-mail e senha corretamente.';
+    if (!verifyCsrf(false)) {
+        refreshCsrf();
+        $erro = 'Sua sessão de acesso expirou. O formulário foi atualizado; informe a senha novamente.';
     } else {
-        $db   = getDB();
-        $stmt = $db->prepare('SELECT id, nome, email, senha, role, ativo FROM usuarios WHERE email = ? LIMIT 1');
-        $stmt->execute([$email]);
-        $user = $stmt->fetch();
+        $email = trim($_POST['email'] ?? '');
+        $senha = $_POST['senha'] ?? '';
+        $lockedUntil = (int) ($_SESSION['login_locked_until'] ?? 0);
 
-        if (!$user || !$user['ativo'] || !password_verify($senha, $user['senha'])) {
-            $user = authenticateCentralAdmin($db, $email, $senha);
-        }
-
-        if ($user && $user['ativo'] && password_verify($senha, $user['senha'])) {
-            session_regenerate_id(true);
-            $_SESSION['user_id']   = $user['id'];
-            $_SESSION['user_nome'] = $user['nome'];
-            $_SESSION['user_role'] = $user['role'];
-            $_SESSION['last_active'] = time();
-            unset($_SESSION['login_attempts'], $_SESSION['login_locked_until']);
-
-            // Atualiza último login
-            $db->prepare('UPDATE usuarios SET ultimo_login = NOW() WHERE id = ?')->execute([$user['id']]);
-            logAction('login', 'usuarios', $user['id']);
-
-            redirect(APP_URL . ($user['role'] === 'admin' ? '/admin/dashboard.php' : '/cliente/dashboard.php'));
+        if ($lockedUntil > time()) {
+            $erro = 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($senha) < 1) {
+            $erro = 'Preencha e-mail e senha corretamente.';
         } else {
-            $erro = 'E-mail ou senha inválidos.';
-            $_SESSION['login_attempts'] = (int) ($_SESSION['login_attempts'] ?? 0) + 1;
-            if ($_SESSION['login_attempts'] >= LOGIN_MAX_ATTEMPTS) {
-                $_SESSION['login_locked_until'] = time() + LOGIN_LOCK_MINUTES * 60;
-                $_SESSION['login_attempts'] = 0;
-                $erro = 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+            $db = getDB();
+            $stmt = $db->prepare('SELECT id, nome, email, senha, role, ativo FROM usuarios WHERE email = ? LIMIT 1');
+            $stmt->execute([$email]);
+            $user = $stmt->fetch();
+
+            if (!$user || !$user['ativo'] || !password_verify($senha, $user['senha'])) {
+                $user = authenticateCentralAdmin($db, $email, $senha);
             }
-            // Pequeno delay para dificultar brute-force
-            sleep(1);
+
+            if ($user && $user['ativo'] && password_verify($senha, $user['senha'])) {
+                session_regenerate_id(true);
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['user_nome'] = $user['nome'];
+                $_SESSION['user_role'] = $user['role'];
+                $_SESSION['last_active'] = time();
+                unset($_SESSION['login_attempts'], $_SESSION['login_locked_until']);
+
+                // Atualiza último login
+                $db->prepare('UPDATE usuarios SET ultimo_login = NOW() WHERE id = ?')->execute([$user['id']]);
+                logAction('login', 'usuarios', $user['id']);
+
+                redirect(APP_URL . ($user['role'] === 'admin' ? '/admin/dashboard.php' : '/cliente/dashboard.php'));
+            } else {
+                $erro = 'E-mail ou senha inválidos.';
+                $_SESSION['login_attempts'] = (int) ($_SESSION['login_attempts'] ?? 0) + 1;
+                if ($_SESSION['login_attempts'] >= LOGIN_MAX_ATTEMPTS) {
+                    $_SESSION['login_locked_until'] = time() + LOGIN_LOCK_MINUTES * 60;
+                    $_SESSION['login_attempts'] = 0;
+                    $erro = 'Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+                }
+                // Pequeno delay para dificultar brute-force
+                sleep(1);
+            }
         }
     }
 }

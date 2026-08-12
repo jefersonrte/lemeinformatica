@@ -203,6 +203,20 @@ jobs:
             echo "::warning::FTPS encerrou com codigo $lftp_exit; validando o resultado publicado por HTTP."
           fi
 
+          curl --silent --show-error --fail --max-time 30 \
+            -c .orca120.cookies \
+            https://lemeinformatica.com.br/orca-funcional-v1.2.0/login.php \
+            -o .orca120-login.html
+          test "$(php -r '$h=file_get_contents(".orca120-login.html"); preg_match("~name=\"csrf_token\" value=\"([a-f0-9]{64})\"~",$h,$m); echo $m[1]??"";')" != ""
+          curl --silent --show-error --fail --max-time 30 \
+            -b .orca120.cookies \
+            -H 'Content-Type: application/x-www-form-urlencoded' \
+            --data 'csrf_token=token-antigo-simulado&email=teste%40exemplo.com&senha=senha-invalida' \
+            https://lemeinformatica.com.br/orca-funcional-v1.2.0/login.php \
+            -o .orca120-stale.html
+          grep -Fq 'informe a senha novamente.' .orca120-stale.html
+          test "$(php -r '$h=file_get_contents(".orca120-stale.html"); preg_match("~name=\"csrf_token\" value=\"([a-f0-9]{64})\"~",$h,$m); echo $m[1]??"";')" != ""
+
           orca_migration=""
           for attempt in $(seq 1 10); do
             if curl --silent --show-error --fail --max-time 45 \
