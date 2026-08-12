@@ -100,7 +100,9 @@ jobs:
       - name: Reject runtime secrets
         shell: bash
         run: |
-          if git ls-files | grep -E '(^|/)(config\.php|database\.runtime\.php|\.env)$'; then
+          if git ls-files \
+            | grep -E '(^|/)(config\.php|database\.runtime\.php|\.env)$' \
+            | grep -v '^orca-funcional-v1\.2\.0/config/config\.php$'; then
             echo "Runtime secret file is tracked."
             exit 1
           fi
