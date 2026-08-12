@@ -1,0 +1,4 @@
+-- Script auxiliar para gerar o hash da senha do admin
+-- Execute no terminal: php -r "echo password_hash('SuaSenhaAqui', PASSWORD_BCRYPT, ['cost'=>12]);"
+-- Depois substitua no banco:
+-- UPDATE usuarios SET senha = 'HASH_GERADO' WHERE email = 'admin@lemeinformatica.com.br';

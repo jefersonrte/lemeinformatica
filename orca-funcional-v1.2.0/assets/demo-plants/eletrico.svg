@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" role="img" aria-labelledby="title desc">
+  <title id="title">Projeto elétrico executivo</title><desc id="desc">Circuitos e pontos elétricos distribuídos na planta do pavimento.</desc>
+  <rect width="1200" height="780" fill="#fbfcfe"/><g fill="none" stroke="#8ca0b1" stroke-width="5"><rect x="155" y="115" width="875" height="550"/><path d="M155 330h390M545 115v550M545 430h485M790 115v315M155 515h390M790 430v235M330 330v185"/></g>
+  <g fill="none" stroke="#e0a331" stroke-width="5" stroke-dasharray="13 8"><path d="M218 218C390 170 535 210 662 268S875 318 955 230M215 420C390 390 510 420 620 520s223 44 337-20"/></g>
+  <g fill="#fff" stroke="#1f568f" stroke-width="6"><circle cx="235" cy="215" r="17"/><circle cx="450" cy="220" r="17"/><circle cx="662" cy="268" r="17"/><circle cx="955" cy="230" r="17"/><circle cx="215" cy="420" r="17"/><circle cx="445" cy="420" r="17"/><circle cx="620" cy="520" r="17"/><circle cx="860" cy="545" r="17"/></g>
+  <g fill="#1f568f" font-family="Arial,sans-serif"><text x="54" y="58" font-size="28" font-weight="700">PROJETO ELÉTRICO EXECUTIVO</text><text x="908" y="735" font-size="20">PRANCHA ELE-04</text></g>
+</svg>

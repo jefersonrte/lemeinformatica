@@ -142,6 +142,41 @@ jobs:
           PHP_CONFIG
           selected=$((selected + 1))
 
+          orca_dir="$staging/orca-funcional-v1.2.0"
+          if [[ -d "$orca_dir" ]]; then
+            composer install --working-dir="$orca_dir" --no-dev --prefer-dist --no-interaction --optimize-autoloader
+            export ORCA_RUNTIME_TARGET="$orca_dir/config/runtime.php"
+            php <<'PHP_ORCA_CONFIG'
+          <?php
+          $config = [
+              'app' => [
+                  'url' => 'https://lemeinformatica.com.br/orca-funcional-v1.2.0',
+                  'environment' => 'production',
+              ],
+              'database' => [
+                  'host' => getenv('APP_DB_HOST'),
+                  'port' => 3306,
+                  'name' => getenv('APP_DB_NAME'),
+                  'user' => getenv('APP_DB_USERNAME'),
+                  'pass' => getenv('APP_DB_PASSWORD'),
+                  'prefix' => 'orca12_',
+              ],
+              'security' => [
+                  'migration_key' => getenv('APP_API_KEY'),
+                  'session_name' => 'LEME_ORCA12_SESSION',
+                  'secure_cookies' => true,
+              ],
+              'demo' => ['enabled' => true],
+          ];
+          file_put_contents(
+              getenv('ORCA_RUNTIME_TARGET'),
+              "<?php\ndeclare(strict_types=1);\nreturn " . var_export($config, true) . ";\n"
+          );
+          chmod(getenv('ORCA_RUNTIME_TARGET'), 0600);
+          PHP_ORCA_CONFIG
+            selected=$((selected + 1))
+          fi
+
           cd "$staging"
 
           printf '%s %s\n' "$FTP_SERVER" "$FTP_TLS_HOST" |
@@ -158,6 +193,28 @@ jobs:
           mirror --reverse --transfer-all --overwrite --verbose --no-perms --no-umask --parallel=1 ./ /
           bye
           LFTP_COMMANDS
+
+          orca_migration=""
+          for attempt in $(seq 1 10); do
+            if curl --silent --show-error --fail --max-time 45 \
+              -X POST -H "X-MIGRATION-KEY: $APP_API_KEY" \
+              https://lemeinformatica.com.br/orca-funcional-v1.2.0/migrate.php \
+              -o .orca-migration.json; then
+              orca_migration="$(php -r '$d=json_decode(file_get_contents(".orca-migration.json"),true); echo is_array($d)&&($d["ok"]??false)?($d["version"]??""):"";' || true)"
+            fi
+            [[ "$orca_migration" == "1.2.0" ]] && break
+            sleep 3
+          done
+          test "$orca_migration" = "1.2.0"
+
+          curl --silent --show-error --fail --max-time 60 \
+            -X POST -H "X-MIGRATION-KEY: $APP_API_KEY" \
+            https://lemeinformatica.com.br/orca-funcional-v1.2.0/smoke.php \
+            -o .orca-smoke.json
+          test "$(php -r '$d=json_decode(file_get_contents(".orca-smoke.json"),true); echo is_array($d)&&($d["ok"]??false)?"ok":"fail";')" = "ok"
+          test "$(curl --silent --show-error --fail --max-time 30 \
+            https://lemeinformatica.com.br/orca-funcional-v1.2.0/health.php | \
+            php -r '$d=json_decode(stream_get_contents(STDIN),true); echo is_array($d)&&($d["ok"]??false)&&($d["version"]??"")==="1.2.0"?"ok":"fail";')" = "ok"
 
           expected_version="$(tr -d '\r\n' < "$GITHUB_WORKSPACE/pet/VERSION")"
           migration_version=""
