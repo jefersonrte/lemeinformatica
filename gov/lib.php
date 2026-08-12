@@ -810,17 +810,22 @@ function govFetchPncpJsonWithRetry(string $url, string $context): array
     throw new RuntimeException('Falha ao consultar ' . $context . ': ' . $lastError . '.');
 }
 
-function govImportPncpProcurements(PDO $pdo, string $slug, array $source): array
+function govImportPncpProcurements(PDO $pdo, string $slug, array $source, ?array $providedBatch = null): array
 {
     @set_time_limit(28);
-    $pageStatement = $pdo->prepare(
-        'SELECT proxima_pagina FROM sincronizacoes_licitacoes WHERE cidade_slug = :cidade'
-    );
-    $pageStatement->execute([':cidade' => $slug]);
-    $page = max(1, (int) ($pageStatement->fetchColumn() ?: 1));
-    $batch = govFetchPncpOpenProcurements($source, $page);
-    $records = $batch['records'];
-    $totalPages = (int) $batch['totalPages'];
+    if ($providedBatch === null) {
+        $pageStatement = $pdo->prepare(
+            'SELECT proxima_pagina FROM sincronizacoes_licitacoes WHERE cidade_slug = :cidade'
+        );
+        $pageStatement->execute([':cidade' => $slug]);
+        $page = max(1, (int) ($pageStatement->fetchColumn() ?: 1));
+        $batch = govFetchPncpOpenProcurements($source, $page);
+    } else {
+        $batch = $providedBatch;
+        $page = max(1, (int) ($batch['page'] ?? 1));
+    }
+    $records = is_array($batch['records'] ?? null) ? $batch['records'] : [];
+    $totalPages = max(1, min(100, (int) ($batch['totalPages'] ?? 1)));
     $completed = $page >= $totalPages;
     $statement = $pdo->prepare(
         'INSERT INTO licitacoes_municipais (

@@ -217,8 +217,34 @@ try {
         $total = govReclassifyProcurements($pdo);
         tenderApiResponse(['ok' => true, 'total' => $total]);
     }
+    if ($action === 'receber-pncp') {
+        $payload = json_decode((string) file_get_contents('php://input'), true);
+        $city = trim((string) ($payload['cidade'] ?? ''));
+        $sources = govProcurementSources();
+        if (!isset($sources[$city]) || ($sources[$city]['driver'] ?? '') !== 'pncp') {
+            tenderApiResponse(['ok' => false, 'erro' => 'Cidade PNCP invalida.'], 422);
+        }
+        $records = is_array($payload['dados'] ?? null) ? $payload['dados'] : [];
+        if (count($records) > 100) {
+            tenderApiResponse(['ok' => false, 'erro' => 'Lote PNCP acima do limite.'], 422);
+        }
+        $page = max(1, (int) ($payload['pagina'] ?? 1));
+        $totalPages = max(1, min(100, (int) ($payload['totalPaginas'] ?? 1)));
+        govRecordProcurementSync($pdo, $city, 'executando', 0, 'Recebendo lote PNCP automatizado.');
+        $counts = govImportPncpProcurements($pdo, $city, $sources[$city], [
+            'records' => $records,
+            'page' => $page,
+            'totalPages' => $totalPages,
+        ]);
+        govRecordProcurementProgress($pdo, $city, $counts);
+        tenderApiResponse(['ok' => true, 'totais' => $counts]);
+    }
 
     tenderApiResponse(['ok' => false, 'erro' => 'Acao de licitacao invalida.'], 400);
 } catch (Throwable $exception) {
-    tenderApiResponse(['ok' => false, 'erro' => 'Falha ao consultar licitacoes.'], 500);
+    $response = ['ok' => false, 'erro' => 'Falha ao consultar licitacoes.'];
+    if ($method === 'POST') {
+        $response['detalhe'] = $exception->getMessage();
+    }
+    tenderApiResponse($response, 500);
 }

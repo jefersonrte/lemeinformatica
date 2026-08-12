@@ -1,0 +1,34 @@
+name: Sincronizar Licitacoes PNCP
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+  push:
+    branches:
+      - main
+    paths:
+      - .github/scripts/sync-pncp.mjs
+      - .github/workflows/sync-licitacoes.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gov-sync-licitacoes-pncp
+  cancel-in-progress: false
+
+jobs:
+  sincronizar:
+    name: Importar licitacoes abertas
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Baixar integracao
+        uses: actions/checkout@v6
+
+      - name: Consultar PNCP e atualizar o site
+        env:
+          APP_API_KEY: ${{ secrets.APP_API_KEY }}
+          SITE_API_URL: https://lemeinformatica.com.br/gov/api/licitacoes.php
+        run: node .github/scripts/sync-pncp.mjs
