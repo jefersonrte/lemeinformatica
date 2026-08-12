@@ -193,11 +193,15 @@ function govEnsureSchema(PDO $pdo): void
             ultimo_inicio DATETIME NULL,
             ultimo_sucesso DATETIME NULL,
             total_registros INT UNSIGNED NOT NULL DEFAULT 0,
+            proxima_pagina INT UNSIGNED NOT NULL DEFAULT 1,
+            total_paginas INT UNSIGNED NOT NULL DEFAULT 1,
             mensagem VARCHAR(500) NULL,
             PRIMARY KEY (cidade_slug),
             KEY idx_sincronizacoes_licitacoes_sucesso (ultimo_sucesso)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
     );
+    govEnsureColumn($pdo, 'sincronizacoes_licitacoes', 'proxima_pagina', 'INT UNSIGNED NOT NULL DEFAULT 1 AFTER total_registros');
+    govEnsureColumn($pdo, 'sincronizacoes_licitacoes', 'total_paginas', 'INT UNSIGNED NOT NULL DEFAULT 1 AFTER proxima_pagina');
 }
 
 function govEnsureColumn(PDO $pdo, string $table, string $column, string $definition): void
@@ -738,32 +742,28 @@ function govWbcSqlDate($value): ?string
     return null;
 }
 
-function govFetchPncpOpenProcurements(array $source): array
+function govFetchPncpOpenProcurements(array $source, int $page = 1): array
 {
     $records = [];
-    $page = 1;
-    $totalPages = 1;
-    do {
-        $url = GOV_PNCP_PROPOSTAS_API . '?' . http_build_query([
-            'dataFinal' => date('Ymd'),
-            'codigoMunicipioIbge' => $source['codigoIbge'],
-            'pagina' => $page,
-            'tamanhoPagina' => 50,
-        ], '', '&', PHP_QUERY_RFC3986);
-        $payload = govFetchPncpJsonWithRetry($url, 'o PNCP para ' . $source['nome']);
-        $items = is_array($payload['data'] ?? null) ? $payload['data'] : [];
-        foreach ($items as $item) {
-            if (is_array($item)) {
-                $records[] = $item;
-            }
+    $page = max(1, $page);
+    $url = GOV_PNCP_PROPOSTAS_API . '?' . http_build_query([
+        'dataFinal' => date('Ymd'),
+        'codigoMunicipioIbge' => $source['codigoIbge'],
+        'pagina' => $page,
+        'tamanhoPagina' => 50,
+    ], '', '&', PHP_QUERY_RFC3986);
+    $payload = govFetchPncpJsonWithRetry($url, 'o PNCP para ' . $source['nome']);
+    $items = is_array($payload['data'] ?? null) ? $payload['data'] : [];
+    foreach ($items as $item) {
+        if (is_array($item)) {
+            $records[] = $item;
         }
-        $totalPages = max(1, min(20, (int) ($payload['totalPaginas'] ?? 1)));
-        $page++;
-        if ($page <= $totalPages) {
-            usleep(250000);
-        }
-    } while ($page <= $totalPages);
-    return $records;
+    }
+    return [
+        'records' => $records,
+        'page' => $page,
+        'totalPages' => max(1, min(100, (int) ($payload['totalPaginas'] ?? 1))),
+    ];
 }
 
 function govFetchPncpJsonWithRetry(string $url, string $context): array
@@ -772,12 +772,12 @@ function govFetchPncpJsonWithRetry(string $url, string $context): array
         throw new RuntimeException('A extensao cURL nao esta disponivel no servidor.');
     }
     $lastError = 'resposta indisponivel';
-    for ($attempt = 1; $attempt <= 4; $attempt++) {
+    for ($attempt = 1; $attempt <= 2; $attempt++) {
         $curl = curl_init($url);
         $options = [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_TIMEOUT => 60,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_TIMEOUT => 10,
             CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_HTTPHEADER => [
                 'Accept: application/json',
@@ -805,15 +805,23 @@ function govFetchPncpJsonWithRetry(string $url, string $context): array
         if (!in_array($status, [0, 429, 500, 502, 503, 504], true)) {
             break;
         }
-        sleep($attempt * 2);
+        sleep(1);
     }
     throw new RuntimeException('Falha ao consultar ' . $context . ': ' . $lastError . '.');
 }
 
 function govImportPncpProcurements(PDO $pdo, string $slug, array $source): array
 {
-    @set_time_limit(180);
-    $records = govFetchPncpOpenProcurements($source);
+    @set_time_limit(28);
+    $pageStatement = $pdo->prepare(
+        'SELECT proxima_pagina FROM sincronizacoes_licitacoes WHERE cidade_slug = :cidade'
+    );
+    $pageStatement->execute([':cidade' => $slug]);
+    $page = max(1, (int) ($pageStatement->fetchColumn() ?: 1));
+    $batch = govFetchPncpOpenProcurements($source, $page);
+    $records = $batch['records'];
+    $totalPages = (int) $batch['totalPages'];
+    $completed = $page >= $totalPages;
     $statement = $pdo->prepare(
         'INSERT INTO licitacoes_municipais (
             cidade_slug, cidade_nome, codigo_processo, codigo_modulo, codigo_edital,
@@ -839,11 +847,21 @@ function govImportPncpProcurements(PDO $pdo, string $slug, array $source): array
             dados_json = VALUES(dados_json), ativo = 1, atualizado_em = NOW()'
     );
 
-    $counts = ['total' => 0, 'emAndamento' => 0, $slug => 0, 'ti' => 0];
+    $counts = [
+        'total' => 0,
+        'emAndamento' => 0,
+        $slug => 0,
+        'ti' => 0,
+        'pagina' => $page,
+        'totalPaginas' => $totalPages,
+        'concluida' => $completed,
+    ];
     try {
         $pdo->beginTransaction();
-        $deactivate = $pdo->prepare('UPDATE licitacoes_municipais SET ativo = 0, em_andamento = 0 WHERE cidade_slug = :cidade');
-        $deactivate->execute([':cidade' => $slug]);
+        if ($page === 1) {
+            $deactivate = $pdo->prepare('UPDATE licitacoes_municipais SET ativo = 0, em_andamento = 0 WHERE cidade_slug = :cidade');
+            $deactivate->execute([':cidade' => $slug]);
+        }
         foreach ($records as $record) {
             $organization = is_array($record['orgaoEntidade'] ?? null) ? $record['orgaoEntidade'] : [];
             $unit = is_array($record['unidadeOrgao'] ?? null) ? $record['unidadeOrgao'] : [];
@@ -937,7 +955,7 @@ function govImportMunicipalProcurements(PDO $pdo, ?string $onlyCity = null): arr
     if (($selectedSource['driver'] ?? '') === 'pncp') {
         try {
             $pncpCounts = govImportPncpProcurements($pdo, $onlyCity, $selectedSource);
-            govRecordProcurementSync($pdo, $onlyCity, 'sucesso', $pncpCounts['total'], 'Sincronizacao PNCP concluida.');
+            govRecordProcurementProgress($pdo, $onlyCity, $pncpCounts);
             return $pncpCounts;
         } catch (Throwable $exception) {
             govRecordProcurementSync($pdo, $onlyCity, 'erro', 0, $exception->getMessage());
@@ -1094,6 +1112,45 @@ function govImportMunicipalProcurements(PDO $pdo, ?string $onlyCity = null): arr
     }
 }
 
+function govRecordProcurementProgress(PDO $pdo, string $slug, array $counts): void
+{
+    $completed = ($counts['concluida'] ?? false) === true;
+    $page = max(1, (int) ($counts['pagina'] ?? 1));
+    $totalPages = max(1, (int) ($counts['totalPaginas'] ?? 1));
+    $total = max(0, (int) ($counts['total'] ?? 0));
+    if ($completed) {
+        govRecordProcurementSync(
+            $pdo,
+            $slug,
+            'sucesso',
+            $total,
+            sprintf('Sincronizacao PNCP concluida em %d pagina(s).', $totalPages)
+        );
+        $statement = $pdo->prepare(
+            'UPDATE sincronizacoes_licitacoes
+             SET proxima_pagina = 1, total_paginas = :total_paginas
+             WHERE cidade_slug = :cidade'
+        );
+        $statement->execute([':total_paginas' => $totalPages, ':cidade' => $slug]);
+        return;
+    }
+
+    $statement = $pdo->prepare(
+        'UPDATE sincronizacoes_licitacoes
+         SET status = "pendente", proxima_pagina = :proxima_pagina,
+             total_paginas = :total_paginas, total_registros = total_registros + :total,
+             mensagem = :mensagem
+         WHERE cidade_slug = :cidade'
+    );
+    $statement->execute([
+        ':proxima_pagina' => $page + 1,
+        ':total_paginas' => $totalPages,
+        ':total' => $total,
+        ':mensagem' => sprintf('Pagina %d de %d importada; continuacao automatica pendente.', $page, $totalPages),
+        ':cidade' => $slug,
+    ]);
+}
+
 function govRecordProcurementSync(PDO $pdo, string $slug, string $status, int $total, string $message): void
 {
     $statement = $pdo->prepare(
@@ -1135,8 +1192,11 @@ function govAutoSyncProcurements(PDO $pdo, int $freshHours = 6): array
         $statement = $pdo->prepare(
             'SELECT cidade_slug, ultimo_sucesso
              FROM sincronizacoes_licitacoes
-             WHERE ultimo_sucesso IS NULL OR ultimo_sucesso < DATE_SUB(NOW(), INTERVAL ' . $freshHours . ' HOUR)
-             ORDER BY COALESCE(ultimo_sucesso, "2000-01-01") ASC, cidade_slug ASC
+             WHERE status IN ("pendente", "erro")
+                OR ultimo_sucesso IS NULL
+                OR ultimo_sucesso < DATE_SUB(NOW(), INTERVAL ' . $freshHours . ' HOUR)
+             ORDER BY CASE WHEN status = "pendente" THEN 0 WHEN status = "erro" THEN 1 ELSE 2 END,
+                      COALESCE(ultimo_sucesso, "2000-01-01") ASC, cidade_slug ASC
              LIMIT 1'
         );
         $statement->execute();
