@@ -20,7 +20,8 @@ Sistema central de autenticacao, API e operacao da Leme Informatica.
 ## Central de projetos
 
 A pagina inicial apresenta os projetos ativos da Leme Informatica e da Leme
-Solucoes em TI. A manutencao do catalogo esta documentada em
+Solucoes em TI, com busca, filtros, estados e selecao das versoes preservadas.
+A manutencao do catalogo esta documentada em
 [`docs/PROJECT_HUB.md`](docs/PROJECT_HUB.md).
 
 A versao atual do catalogo fica em `PROJECT_HUB_VERSION`.

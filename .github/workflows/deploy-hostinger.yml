@@ -142,7 +142,7 @@ jobs:
           PHP_CONFIG
           selected=$((selected + 1))
 
-          orca_dir="$staging/orca-funcional-v1.2.0"
+          orca_dir="$staging/orca-funcional-v1.2.1"
           if [[ -d "$orca_dir" ]]; then
             composer install --working-dir="$orca_dir" --no-dev --prefer-dist --no-interaction --optimize-autoloader
             export ORCA_RUNTIME_TARGET="$orca_dir/config/runtime.php"
@@ -150,7 +150,7 @@ jobs:
           <?php
           $config = [
               'app' => [
-                  'url' => 'https://lemeinformatica.com.br/orca-funcional-v1.2.0',
+                  'url' => 'https://lemeinformatica.com.br/orca-funcional-v1.2.1',
                   'environment' => 'production',
               ],
               'database' => [
@@ -163,7 +163,7 @@ jobs:
               ],
               'security' => [
                   'migration_key' => getenv('APP_API_KEY'),
-                  'session_name' => 'LEME_ORCA12_SESSION',
+                  'session_name' => 'LEME_ORCA121_SESSION',
                   'secure_cookies' => true,
               ],
               'demo' => ['enabled' => true],
@@ -198,23 +198,23 @@ jobs:
           for attempt in $(seq 1 10); do
             if curl --silent --show-error --fail --max-time 45 \
               -X POST -H "X-MIGRATION-KEY: $APP_API_KEY" \
-              https://lemeinformatica.com.br/orca-funcional-v1.2.0/migrate.php \
+              https://lemeinformatica.com.br/orca-funcional-v1.2.1/migrate.php \
               -o .orca-migration.json; then
               orca_migration="$(php -r '$d=json_decode(file_get_contents(".orca-migration.json"),true); echo is_array($d)&&($d["ok"]??false)?($d["version"]??""):"";' || true)"
             fi
-            [[ "$orca_migration" == "1.2.0" ]] && break
+            [[ "$orca_migration" == "1.2.1" ]] && break
             sleep 3
           done
-          test "$orca_migration" = "1.2.0"
+          test "$orca_migration" = "1.2.1"
 
           curl --silent --show-error --fail --max-time 60 \
             -X POST -H "X-MIGRATION-KEY: $APP_API_KEY" \
-            https://lemeinformatica.com.br/orca-funcional-v1.2.0/smoke.php \
+            https://lemeinformatica.com.br/orca-funcional-v1.2.1/smoke.php \
             -o .orca-smoke.json
           test "$(php -r '$d=json_decode(file_get_contents(".orca-smoke.json"),true); echo is_array($d)&&($d["ok"]??false)?"ok":"fail";')" = "ok"
           test "$(curl --silent --show-error --fail --max-time 30 \
-            https://lemeinformatica.com.br/orca-funcional-v1.2.0/health.php | \
-            php -r '$d=json_decode(stream_get_contents(STDIN),true); echo is_array($d)&&($d["ok"]??false)&&($d["version"]??"")==="1.2.0"?"ok":"fail";')" = "ok"
+            https://lemeinformatica.com.br/orca-funcional-v1.2.1/health.php | \
+            php -r '$d=json_decode(stream_get_contents(STDIN),true); echo is_array($d)&&($d["ok"]??false)&&($d["version"]??"")==="1.2.1"?"ok":"fail";')" = "ok"
 
           expected_version="$(tr -d '\r\n' < "$GITHUB_WORKSPACE/pet/VERSION")"
           migration_version=""

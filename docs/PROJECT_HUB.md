@@ -1,7 +1,7 @@
 # Central de projetos
 
-Versao atual: `1.3.0`
-Publicacao: 06/08/2026
+Versao atual: `1.4.0`
+Publicacao: 12/08/2026
 
 ## Objetivo
 
@@ -39,6 +39,10 @@ da pagina atual.
 
 | Projeto | Destino |
 |---|---|
+| Orçamentista recomendado 1.2.1 | `https://lemeinformatica.com.br/orca-funcional-v1.2.1/` |
+| Orçamentista funcional 1.2.0 | `https://lemeinformatica.com.br/orca-funcional-v1.2.0/` |
+| Orçamentista visual 1.2.0 | `https://lemeinformatica.com.br/orca-v1.2.0/` |
+| Orçamentista original 1.0.0 | `https://lemeinformatica.com.br/orca/` |
 | Clinica Pet | `https://lemeinformatica.com.br/pet/` |
 | Dashboard Pet | `https://lemesolucoesemti.com.br/pet/` |
 | Relatorios Power BI | `https://lemesolucoesemti.com.br/powerbi/` |
@@ -50,6 +54,8 @@ da pagina atual.
 
 ## Versoes
 
+- `1.4.0`: adiciona seletor por modulo e versao, busca, estados de acesso e
+  atalhos para todas as versoes publicadas do Orçamentista.
 - `1.3.0`: centraliza o cadastro de usuarios, replica conta, perfil, senha e
   status no dashboard e provisiona a mesma identidade no Nextcloud.
 - `1.1.2`: adiciona compatibilidade com o repositorio montado pela Hostinger
