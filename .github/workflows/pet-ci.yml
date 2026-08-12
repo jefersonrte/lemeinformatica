@@ -73,7 +73,12 @@ jobs:
       - name: Check project hub links
         shell: bash
         run: |
-          test "$(tr -d '\r\n' < PROJECT_HUB_VERSION)" = "1.3.0"
+          test "$(tr -d '\r\n' < PROJECT_HUB_VERSION)" = "1.4.0"
+          grep -q "https://lemeinformatica.com.br/orca-funcional-v1.2.1/" index.php
+          grep -q "https://lemeinformatica.com.br/orca-funcional-v1.2.0/" index.php
+          grep -q "https://lemeinformatica.com.br/orca-v1.2.0/" index.php
+          grep -q "https://lemeinformatica.com.br/orca/" index.php
+          grep -q "data-project-filter" index.php
           grep -q "https://lemeinformatica.com.br/pet/" index.php
           grep -q "https://lemesolucoesemti.com.br/pet/" index.php
           grep -q "https://lemesolucoesemti.com.br/powerbi/" index.php
