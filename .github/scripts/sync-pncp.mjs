@@ -15,6 +15,29 @@ if (!apiKey || !siteApiUrl) {
 
 const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
+async function waitForReceiver() {
+  const receiverUrl = new URL(siteApiUrl);
+  receiverUrl.searchParams.set('acao', 'receber-pncp');
+  for (let attempt = 1; attempt <= 30; attempt += 1) {
+    try {
+      const response = await fetch(receiverUrl, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-API-KEY': apiKey,
+          'User-Agent': 'LemeGovLicitacoes/3.0 (+https://lemeinformatica.com.br/gov/)',
+        },
+        body: JSON.stringify({ cidade: '__healthcheck__', dados: [] }),
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (response.status === 422) return;
+    } catch {}
+    await wait(10_000);
+  }
+  throw new Error('A API receptora de licitacoes nao ficou pronta dentro do prazo.');
+}
+
 async function requestJson(url, options = {}, label = 'requisicao') {
   let lastError = 'resposta indisponivel';
   for (let attempt = 1; attempt <= 6; attempt += 1) {
@@ -50,6 +73,8 @@ const localDate = new Intl.DateTimeFormat('sv-SE', {
   month: '2-digit',
   day: '2-digit',
 }).format(new Date()).replaceAll('-', '');
+
+await waitForReceiver();
 
 for (const [city, ibge] of cities) {
   let page = 1;
