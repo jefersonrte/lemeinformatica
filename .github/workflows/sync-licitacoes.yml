@@ -1,4 +1,4 @@
-name: Sincronizar Licitacoes PNCP
+name: Sincronizar Licitacoes
 
 on:
   workflow_dispatch:
@@ -27,7 +27,7 @@ jobs:
       - name: Baixar integracao
         uses: actions/checkout@v6
 
-      - name: Consultar PNCP e atualizar o site
+      - name: Atualizar WBC e PNCP no banco do site
         env:
           APP_API_KEY: ${{ secrets.APP_API_KEY }}
           SITE_API_URL: https://lemeinformatica.com.br/gov/api/licitacoes.php

@@ -6,6 +6,7 @@ const cities = [
   ['santo-amaro-da-imperatriz', '4215703'],
   ['antonio-carlos', '4201208'],
 ];
+const wbcCities = ['florianopolis', 'sao-jose'];
 
 const apiKey = process.env.APP_API_KEY ?? '';
 const siteApiUrl = process.env.SITE_API_URL ?? '';
@@ -38,7 +39,7 @@ async function waitForReceiver() {
   throw new Error('A API receptora de licitacoes nao ficou pronta dentro do prazo.');
 }
 
-async function requestJson(url, options = {}, label = 'requisicao') {
+async function requestJson(url, options = {}, label = 'requisicao', timeoutMs = 30_000) {
   let lastError = 'resposta indisponivel';
   for (let attempt = 1; attempt <= 6; attempt += 1) {
     try {
@@ -49,7 +50,7 @@ async function requestJson(url, options = {}, label = 'requisicao') {
           'User-Agent': 'LemeGovLicitacoes/3.0 (+https://lemeinformatica.com.br/gov/)',
           ...(options.headers ?? {}),
         },
-        signal: AbortSignal.timeout(30_000),
+        signal: AbortSignal.timeout(timeoutMs),
       });
       const body = await response.text();
       if (response.ok) {
@@ -75,6 +76,22 @@ const localDate = new Intl.DateTimeFormat('sv-SE', {
 }).format(new Date()).replaceAll('-', '');
 
 await waitForReceiver();
+
+for (const city of wbcCities) {
+  const importUrl = new URL(siteApiUrl);
+  importUrl.searchParams.set('acao', 'importar');
+  importUrl.searchParams.set('cidade', city);
+  const result = await requestJson(importUrl, {
+    method: 'POST',
+    headers: {
+      'X-API-KEY': apiKey,
+    },
+  }, `atualizacao WBC de ${city}`, 240_000);
+  if (result.ok !== true) {
+    throw new Error(`A API do site rejeitou a atualizacao WBC de ${city}.`);
+  }
+  console.log(`${city}: acervo WBC atualizado no banco local.`);
+}
 
 for (const [city, ibge] of cities) {
   let page = 1;
