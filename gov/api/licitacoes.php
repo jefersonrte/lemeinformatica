@@ -21,6 +21,17 @@ function tenderApiSlice(string $text, int $length): string
         : substr($text, 0, $length);
 }
 
+function tenderApiOpenSql(): string
+{
+    return 'em_andamento = 1
+        AND data_fim IS NOT NULL
+        AND data_fim >= NOW()
+        AND LOWER(situacao) NOT LIKE "%suspens%"
+        AND LOWER(situacao) NOT LIKE "%cancel%"
+        AND LOWER(situacao) NOT LIKE "%revog%"
+        AND LOWER(situacao) NOT LIKE "%anulad%"';
+}
+
 function tenderApiList(PDO $pdo): never
 {
     $search = tenderApiSlice(trim((string) ($_GET['busca'] ?? '')), 100);
@@ -30,9 +41,12 @@ function tenderApiList(PDO $pdo): never
         $city = '';
     }
 
-    $situation = trim((string) ($_GET['situacao'] ?? 'andamento'));
-    if (!in_array($situation, ['andamento', 'encerradas', 'todas'], true)) {
-        $situation = 'andamento';
+    $situation = trim((string) ($_GET['situacao'] ?? 'abertas'));
+    if ($situation === 'andamento') {
+        $situation = 'abertas';
+    }
+    if (!in_array($situation, ['abertas', 'encerradas', 'todas'], true)) {
+        $situation = 'abertas';
     }
     $category = trim((string) ($_GET['categoria'] ?? ''));
     if (!in_array($category, ['', 'produtos', 'servicos', 'outros'], true)) {
@@ -52,13 +66,11 @@ function tenderApiList(PDO $pdo): never
         $conditions[] = 'cidade_slug = :cidade';
         $parameters[':cidade'] = $city;
     }
-    if ($situation === 'andamento') {
-        $conditions[] = 'em_andamento = 1 AND (
-            data_fim >= MAKEDATE(YEAR(CURDATE()), 1)
-            OR (data_fim IS NULL AND data_inicio >= MAKEDATE(YEAR(CURDATE()), 1))
-        )';
+    $openSql = tenderApiOpenSql();
+    if ($situation === 'abertas') {
+        $conditions[] = '(' . $openSql . ')';
     } elseif ($situation === 'encerradas') {
-        $conditions[] = 'em_andamento = 0';
+        $conditions[] = 'NOT (' . $openSql . ')';
     }
     if ($category !== '') {
         $conditions[] = 'categoria = :categoria';
@@ -94,12 +106,14 @@ function tenderApiList(PDO $pdo): never
             numero_processo AS numeroProcesso, numero_edital AS numeroEdital,
             orgao, unidade, objeto, modalidade, tipo_modalidade AS tipoModalidade,
             situacao, situacao_codigo AS situacaoCodigo, categoria, setor, fonte,
-            em_andamento AS emAndamento, data_inicio AS dataInicio, data_fim AS dataFim,
+            em_andamento AS emAndamento,
+            CASE WHEN ' . $openSql . ' THEN 1 ELSE 0 END AS abertaParaPropostas,
+            data_inicio AS dataInicio, data_fim AS dataFim,
             valor_estimado AS valorEstimado, url_processo AS urlProcesso,
             atualizado_em AS atualizadoEm
          FROM licitacoes_municipais
          WHERE ' . $where . '
-         ORDER BY em_andamento DESC,
+         ORDER BY abertaParaPropostas DESC,
                   CASE WHEN setor = "ti" THEN 0 ELSE 1 END ASC,
                   CASE WHEN data_fim IS NULL THEN 1 ELSE 0 END ASC,
                   data_fim ASC, codigo_processo DESC
@@ -109,10 +123,7 @@ function tenderApiList(PDO $pdo): never
 
     $summary = $pdo->query(
         'SELECT COUNT(*) AS total,
-                SUM(em_andamento = 1 AND (
-                    data_fim >= MAKEDATE(YEAR(CURDATE()), 1)
-                    OR (data_fim IS NULL AND data_inicio >= MAKEDATE(YEAR(CURDATE()), 1))
-                )) AS emAndamento,
+                SUM(' . $openSql . ') AS abertas,
                 SUM(setor = "ti") AS ti,
                 SUM(setor = "obras") AS obras,
                 SUM(setor = "saude") AS saude,
@@ -124,14 +135,8 @@ function tenderApiList(PDO $pdo): never
 
     $cityRows = $pdo->query(
         'SELECT cidade_slug, cidade_nome, COUNT(*) AS total,
-                SUM(em_andamento = 1 AND (
-                    data_fim >= MAKEDATE(YEAR(CURDATE()), 1)
-                    OR (data_fim IS NULL AND data_inicio >= MAKEDATE(YEAR(CURDATE()), 1))
-                )) AS emAndamento,
-                SUM(setor = "ti" AND em_andamento = 1 AND (
-                    data_fim >= MAKEDATE(YEAR(CURDATE()), 1)
-                    OR (data_fim IS NULL AND data_inicio >= MAKEDATE(YEAR(CURDATE()), 1))
-                )) AS tiEmAndamento,
+                SUM(' . $openSql . ') AS abertas,
+                SUM(setor = "ti" AND (' . $openSql . ')) AS tiAbertas,
                 MAX(atualizado_em) AS atualizadoEm
          FROM licitacoes_municipais
          WHERE ativo = 1
@@ -152,8 +157,10 @@ function tenderApiList(PDO $pdo): never
             'fonte' => strtoupper($source['driver']),
             'portal' => $source['portal'],
             'total' => (int) ($row['total'] ?? 0),
-            'emAndamento' => (int) ($row['emAndamento'] ?? 0),
-            'tiEmAndamento' => (int) ($row['tiEmAndamento'] ?? 0),
+            'abertas' => (int) ($row['abertas'] ?? 0),
+            'emAndamento' => (int) ($row['abertas'] ?? 0),
+            'tiAbertas' => (int) ($row['tiAbertas'] ?? 0),
+            'tiEmAndamento' => (int) ($row['tiAbertas'] ?? 0),
             'atualizadoEm' => $row['atualizadoEm'] ?? null,
         ];
     }
@@ -176,7 +183,8 @@ function tenderApiList(PDO $pdo): never
             ],
             'totais' => [
                 'todos' => (int) ($summary['total'] ?? 0),
-                'emAndamento' => (int) ($summary['emAndamento'] ?? 0),
+                'abertas' => (int) ($summary['abertas'] ?? 0),
+                'emAndamento' => (int) ($summary['abertas'] ?? 0),
                 'ti' => (int) ($summary['ti'] ?? 0),
                 'obras' => (int) ($summary['obras'] ?? 0),
                 'saude' => (int) ($summary['saude'] ?? 0),

@@ -742,6 +742,16 @@ function govWbcSqlDate($value): ?string
     return null;
 }
 
+function govWbcCanonicalProcessId(array $record): int
+{
+    $editorProcessId = max(0, (int) ($record['nCdEdital'] ?? 0));
+    if ($editorProcessId > 0) {
+        return $editorProcessId;
+    }
+
+    return max(0, (int) ($record['nCdProcesso'] ?? 0));
+}
+
 function govFetchPncpOpenProcurements(array $source, int $page = 1): array
 {
     $records = [];
@@ -979,20 +989,20 @@ function govImportMunicipalProcurements(PDO $pdo, ?string $onlyCity = null): arr
 
         $byProcess = [];
         foreach ($editorRecords as $record) {
-            $processId = (int) ($record['nCdProcesso'] ?? 0);
+            $processId = govWbcCanonicalProcessId($record);
             if ($processId > 0) {
                 $byProcess[$processId] = $record;
             }
         }
         foreach ($muralRecords as $record) {
-            $processId = (int) ($record['nCdProcesso'] ?? 0);
+            $processId = govWbcCanonicalProcessId($record);
             if ($processId > 0) {
                 $byProcess[$processId] = array_merge($byProcess[$processId] ?? [], $record);
             }
         }
         $ongoingIds = [];
         foreach ($ongoingRecords as $record) {
-            $processId = (int) ($record['nCdProcesso'] ?? 0);
+            $processId = govWbcCanonicalProcessId($record);
             if ($processId > 0) {
                 $ongoingIds[$processId] = true;
                 $byProcess[$processId] = array_merge($byProcess[$processId] ?? [], $record);
