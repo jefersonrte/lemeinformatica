@@ -727,16 +727,21 @@ function govWbcSqlDate($value): ?string
     if (!is_string($value) || $value === '') {
         return null;
     }
+    $localTimezone = new DateTimeZone('America/Sao_Paulo');
+    $sourceTimezone = new DateTimeZone('UTC');
     if (preg_match('/\\/Date\\((-?\d+)(?:[+-]\d+)?\\)\\//', $value, $matches)) {
-        return date('Y-m-d H:i:s', (int) floor(((int) $matches[1]) / 1000));
+        return (new DateTimeImmutable('@' . (int) floor(((int) $matches[1]) / 1000)))
+            ->setTimezone($localTimezone)
+            ->format('Y-m-d H:i:s');
     }
     if (preg_match('/[\x00-\x1F]/', $value)) {
         return null;
     }
     foreach (['d/m/Y H:i:s', 'd/m/Y H:i', 'd/m/Y'] as $format) {
-        $date = DateTimeImmutable::createFromFormat('!' . $format, trim($value));
+        $timezone = $format === 'd/m/Y' ? $localTimezone : $sourceTimezone;
+        $date = DateTimeImmutable::createFromFormat('!' . $format, trim($value), $timezone);
         if ($date instanceof DateTimeImmutable) {
-            return $date->format('Y-m-d H:i:s');
+            return $date->setTimezone($localTimezone)->format('Y-m-d H:i:s');
         }
     }
     return null;
