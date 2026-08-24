@@ -1,0 +1,1 @@
+ALTER TABLE compras MODIFY cotacao_id INT UNSIGNED NULL;

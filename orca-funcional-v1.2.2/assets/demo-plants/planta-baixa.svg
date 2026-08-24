@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" role="img" aria-labelledby="title desc">
+  <title id="title">Planta baixa do pavimento térreo</title><desc id="desc">Distribuição técnica de ambientes, paredes e aberturas.</desc>
+  <rect width="1200" height="780" fill="#fff"/><g stroke="#e6edf4"><path d="M0 60h1200M0 120h1200M0 180h1200M0 240h1200M0 300h1200M0 360h1200M0 420h1200M0 480h1200M0 540h1200M0 600h1200M0 660h1200M0 720h1200"/><path d="M60 0v780M120 0v780M180 0v780M240 0v780M300 0v780M360 0v780M420 0v780M480 0v780M540 0v780M600 0v780M660 0v780M720 0v780M780 0v780M840 0v780M900 0v780M960 0v780M1020 0v780M1080 0v780M1140 0v780"/></g>
+  <g fill="none" stroke="#2f4e68" stroke-width="9"><rect x="165" y="116" width="870" height="548"/><path d="M165 330h385M550 116v548M550 427h485M790 116v311M165 515h385M790 427v237M328 330v185"/></g>
+  <g fill="#557086" font-family="Arial,sans-serif" text-anchor="middle"><text x="355" y="230" font-size="24">SALA / JANTAR</text><text x="355" y="420" font-size="24">COZINHA</text><text x="355" y="604" font-size="24">SERVIÇO</text><text x="670" y="270" font-size="24">SUÍTE</text><text x="912" y="270" font-size="24">QUARTO</text><text x="670" y="555" font-size="24">BANHO</text><text x="912" y="555" font-size="24">QUARTO</text></g>
+  <g fill="#1f568f" font-family="Arial,sans-serif"><text x="54" y="58" font-size="28" font-weight="700">PAVIMENTO TÉRREO</text><text x="961" y="735" font-size="20">PRANCHA A-02</text></g>
+</svg>

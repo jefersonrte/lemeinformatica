@@ -32,7 +32,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: mysqli, fileinfo, json
+          extensions: mysqli, fileinfo, json, dom, libxml, xml
           coverage: none
           tools: none
 
@@ -41,6 +41,7 @@ jobs:
         run: |
           find . -type f -name "*.php" -not -path "./.git/*" -print0 | xargs -0 -n1 php -l
           php .github/scripts/test-orca120-csrf.php
+          php orca-funcional-v1.2.2/tests/run.php
 
   frontend:
     name: Frontend and repository safety
@@ -75,7 +76,11 @@ jobs:
       - name: Check project hub links
         shell: bash
         run: |
-          test "$(tr -d '\r\n' < PROJECT_HUB_VERSION)" = "1.4.0"
+          test "$(tr -d '\r\n' < PROJECT_HUB_VERSION)" = "1.4.1"
+          grep -q "https://lemeinformatica.com.br/orca-funcional-v1.2.2/" index.php
+          test -s orca-funcional-v1.2.2/src/Domain/Obra/SvgSanitizer.php
+          grep -q "image/svg+xml" orca-funcional-v1.2.2/src/Domain/Obra/PlantaService.php
+          grep -q 'accept=".pdf,.png,.jpg,.jpeg,.webp,.svg"' orca-funcional-v1.2.2/plantas.php
           grep -q "https://lemeinformatica.com.br/orca-funcional-v1.2.1/" index.php
           test -s orca-funcional-v1.2.1/provision-admin.php
           grep -q "HTTP_X_MIGRATION_KEY" orca-funcional-v1.2.1/provision-admin.php
@@ -111,7 +116,7 @@ jobs:
         run: |
           if git ls-files \
             | grep -E '(^|/)(config\.php|database\.runtime\.php|\.env)$' \
-            | grep -v -E '^orca-funcional-v1\.2\.[01]/config/config\.php$'; then
+            | grep -v -E '^orca-funcional-v1\.2\.[012]/config/config\.php$'; then
             echo "Runtime secret file is tracked."
             exit 1
           fi

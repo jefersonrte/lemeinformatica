@@ -28,6 +28,21 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Preparar PHP do Orçamentista
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_mysql, fileinfo, dom, libxml, xml, gd, zip
+          coverage: none
+
+      - name: Validar Orçamentista 1.2.2
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          composer validate --strict --working-dir=orca-funcional-v1.2.2
+          php orca-funcional-v1.2.2/tests/lint.php
+          php orca-funcional-v1.2.2/tests/run.php
+
       - name: Validar configuracao protegida
         env:
           FTP_SERVER: ${{ secrets.HOSTINGER_FTP_SERVER }}
@@ -82,7 +97,7 @@ jobs:
 
           while IFS= read -r -d '' file; do
             case "$file" in
-              .github/*|.gitignore|README.md|README_USUARIOS.md|backend/README.md|frontend/README.md|pet/README.md|pet/CHANGELOG.md|pet/docs/*|pet/tests/*|sql/*)
+              .github/*|.gitignore|README.md|README_USUARIOS.md|backend/README.md|frontend/README.md|pet/README.md|pet/CHANGELOG.md|pet/docs/*|pet/tests/*|orca-funcional-v1.2.2/tests/*|sql/*)
                 continue
                 ;;
               includes/config.php|includes/database.runtime.php)
@@ -142,7 +157,7 @@ jobs:
           PHP_CONFIG
           selected=$((selected + 1))
 
-          orca_dir="$staging/orca-funcional-v1.2.1"
+          orca_dir="$staging/orca-funcional-v1.2.2"
           if [[ -d "$orca_dir" ]]; then
             composer install --working-dir="$orca_dir" --no-dev --prefer-dist --no-interaction --optimize-autoloader
             export ORCA_RUNTIME_TARGET="$orca_dir/config/runtime.php"
@@ -150,7 +165,7 @@ jobs:
           <?php
           $config = [
               'app' => [
-                  'url' => 'https://lemeinformatica.com.br/orca-funcional-v1.2.1',
+                  'url' => 'https://lemeinformatica.com.br/orca-funcional-v1.2.2',
                   'environment' => 'production',
               ],
               'database' => [
@@ -163,7 +178,7 @@ jobs:
               ],
               'security' => [
                   'migration_key' => getenv('APP_API_KEY'),
-                  'session_name' => 'LEME_ORCA121_SESSION',
+                  'session_name' => 'LEME_ORCA122_SESSION',
                   'secure_cookies' => true,
               ],
               'demo' => ['enabled' => true],
@@ -221,23 +236,23 @@ jobs:
           for attempt in $(seq 1 10); do
             if curl --silent --show-error --fail --max-time 45 \
               -X POST -H "X-MIGRATION-KEY: $APP_API_KEY" \
-              https://lemeinformatica.com.br/orca-funcional-v1.2.1/migrate.php \
+              https://lemeinformatica.com.br/orca-funcional-v1.2.2/migrate.php \
               -o .orca-migration.json; then
               orca_migration="$(php -r '$d=json_decode(file_get_contents(".orca-migration.json"),true); echo is_array($d)&&($d["ok"]??false)?($d["version"]??""):"";' || true)"
             fi
-            [[ "$orca_migration" == "1.2.1" ]] && break
+            [[ "$orca_migration" == "1.2.2" ]] && break
             sleep 3
           done
-          test "$orca_migration" = "1.2.1"
+          test "$orca_migration" = "1.2.2"
 
           curl --silent --show-error --fail --max-time 60 \
             -X POST -H "X-MIGRATION-KEY: $APP_API_KEY" \
-            https://lemeinformatica.com.br/orca-funcional-v1.2.1/smoke.php \
+            https://lemeinformatica.com.br/orca-funcional-v1.2.2/smoke.php \
             -o .orca-smoke.json
           test "$(php -r '$d=json_decode(file_get_contents(".orca-smoke.json"),true); echo is_array($d)&&($d["ok"]??false)?"ok":"fail";')" = "ok"
           test "$(curl --silent --show-error --fail --max-time 30 \
-            https://lemeinformatica.com.br/orca-funcional-v1.2.1/health.php | \
-            php -r '$d=json_decode(stream_get_contents(STDIN),true); echo is_array($d)&&($d["ok"]??false)&&($d["version"]??"")==="1.2.1"?"ok":"fail";')" = "ok"
+            https://lemeinformatica.com.br/orca-funcional-v1.2.2/health.php | \
+            php -r '$d=json_decode(stream_get_contents(STDIN),true); echo is_array($d)&&($d["ok"]??false)&&($d["version"]??"")==="1.2.2"?"ok":"fail";')" = "ok"
 
           expected_version="$(tr -d '\r\n' < "$GITHUB_WORKSPACE/pet/VERSION")"
           migration_version=""
