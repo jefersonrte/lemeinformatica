@@ -41,7 +41,7 @@ jobs:
         run: |
           find . -type f -name "*.php" -not -path "./.git/*" -print0 | xargs -0 -n1 php -l
           php .github/scripts/test-orca120-csrf.php
-          php orca-funcional-v1.2.2/tests/run.php
+          php orca-funcional-v1.2.3/tests/run.php
 
   frontend:
     name: Frontend and repository safety
@@ -57,6 +57,7 @@ jobs:
           node --check pet/tests/production-smoke.mjs
           node --check frontend/js/home.js
           node --check frontend/js/usuarios.js
+          node --check orca-funcional-v1.2.3/assets/js/app.js
 
       - name: Check Pet 1.1 contracts
         shell: bash
@@ -76,7 +77,13 @@ jobs:
       - name: Check project hub links
         shell: bash
         run: |
-          test "$(tr -d '\r\n' < PROJECT_HUB_VERSION)" = "1.4.1"
+          test "$(tr -d '\r\n' < PROJECT_HUB_VERSION)" = "1.4.2"
+          grep -q "https://lemeinformatica.com.br/orca-funcional-v1.2.3/" index.php
+          test -s orca-funcional-v1.2.3/src/Infrastructure/LegacyUploadMigrator.php
+          grep -q "arquivos_plantas_disponiveis" orca-funcional-v1.2.3/smoke.php
+          grep -q "plant-viewer-error" orca-funcional-v1.2.3/assets/js/app.js
+          test ! -e orca-funcional-v1.2.3/config/runtime.php
+          test "$(find orca-funcional-v1.2.3/uploads -type f ! -name .gitkeep ! -name .htaccess | wc -l)" -eq 0
           grep -q "https://lemeinformatica.com.br/orca-funcional-v1.2.2/" index.php
           test -s orca-funcional-v1.2.2/src/Domain/Obra/SvgSanitizer.php
           grep -q "image/svg+xml" orca-funcional-v1.2.2/src/Domain/Obra/PlantaService.php

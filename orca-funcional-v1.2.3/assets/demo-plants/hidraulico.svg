@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" role="img" aria-labelledby="title desc">
+  <title id="title">Projeto hidráulico</title><desc id="desc">Rede de água fria e esgoto sobre a planta do pavimento.</desc>
+  <rect width="1200" height="780" fill="#fbfdff"/><g fill="none" stroke="#a0aebc" stroke-width="5"><rect x="155" y="115" width="875" height="550"/><path d="M155 330h390M545 115v550M545 430h485M790 115v315M155 515h390M790 430v235M330 330v185"/></g>
+  <g fill="none" stroke-linecap="round"><path d="M205 612H690V487H880V275H980" stroke="#278ec0" stroke-width="11"/><path d="M265 610V420H500M690 612H930V530" stroke="#35a6d4" stroke-width="7"/><path d="M300 632H720V514H905V300" stroke="#d16c55" stroke-width="8"/></g>
+  <g fill="#fff" stroke="#278ec0" stroke-width="6"><circle cx="265" cy="420" r="16"/><circle cx="500" cy="420" r="16"/><circle cx="880" cy="275" r="16"/><circle cx="930" cy="530" r="16"/></g>
+  <g fill="#1f568f" font-family="Arial,sans-serif"><text x="54" y="58" font-size="28" font-weight="700">INSTALAÇÕES HIDRÁULICAS</text><text x="908" y="735" font-size="20">PRANCHA HID-03</text></g>
+</svg>

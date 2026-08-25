@@ -17,7 +17,7 @@ jobs:
   deploy:
     name: Publicar em producao
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     environment:
       name: production
       url: https://lemeinformatica.com.br/pet/
@@ -35,13 +35,13 @@ jobs:
           extensions: mbstring, pdo_mysql, fileinfo, dom, libxml, xml, gd, zip
           coverage: none
 
-      - name: Validar Orçamentista 1.2.2
+      - name: Validar Orçamentista 1.2.3
         shell: bash
         run: |
           set -Eeuo pipefail
-          composer validate --strict --working-dir=orca-funcional-v1.2.2
-          php orca-funcional-v1.2.2/tests/lint.php
-          php orca-funcional-v1.2.2/tests/run.php
+          composer validate --strict --working-dir=orca-funcional-v1.2.3
+          php orca-funcional-v1.2.3/tests/lint.php
+          php orca-funcional-v1.2.3/tests/run.php
 
       - name: Validar configuracao protegida
         env:
@@ -97,7 +97,7 @@ jobs:
 
           while IFS= read -r -d '' file; do
             case "$file" in
-              .github/*|.gitignore|README.md|README_USUARIOS.md|backend/README.md|frontend/README.md|pet/README.md|pet/CHANGELOG.md|pet/docs/*|pet/tests/*|orca-funcional-v1.2.2/tests/*|sql/*)
+              .github/*|.gitignore|README.md|README_USUARIOS.md|backend/README.md|frontend/README.md|pet/README.md|pet/CHANGELOG.md|pet/docs/*|pet/tests/*|orca-funcional-v1.2.2/tests/*|orca-funcional-v1.2.3/tests/*|sql/*)
                 continue
                 ;;
               includes/config.php|includes/database.runtime.php)
@@ -157,7 +157,7 @@ jobs:
           PHP_CONFIG
           selected=$((selected + 1))
 
-          orca_dir="$staging/orca-funcional-v1.2.2"
+          orca_dir="$staging/orca-funcional-v1.2.3"
           if [[ -d "$orca_dir" ]]; then
             composer install --working-dir="$orca_dir" --no-dev --prefer-dist --no-interaction --optimize-autoloader
             export ORCA_RUNTIME_TARGET="$orca_dir/config/runtime.php"
@@ -165,7 +165,7 @@ jobs:
           <?php
           $config = [
               'app' => [
-                  'url' => 'https://lemeinformatica.com.br/orca-funcional-v1.2.2',
+                  'url' => 'https://lemeinformatica.com.br/orca-funcional-v1.2.3',
                   'environment' => 'production',
               ],
               'database' => [
@@ -178,7 +178,7 @@ jobs:
               ],
               'security' => [
                   'migration_key' => getenv('APP_API_KEY'),
-                  'session_name' => 'LEME_ORCA122_SESSION',
+                  'session_name' => 'LEME_ORCA123_SESSION',
                   'secure_cookies' => true,
               ],
               'demo' => ['enabled' => true],
@@ -209,9 +209,10 @@ jobs:
           set net:max-retries 3
           set net:timeout 30
           set net:reconnect-interval-base 3
-          mirror --reverse --transfer-all --overwrite --verbose --no-perms --no-umask --parallel=1 ./orca-funcional-v1.2.2 /orca-funcional-v1.2.2
+          mirror --reverse --transfer-all --overwrite --verbose --no-perms --no-umask --parallel=1 ./orca-funcional-v1.2.3 /orca-funcional-v1.2.3
           put -O / index.php
-          mirror --reverse --transfer-all --overwrite --verbose --no-perms --no-umask --parallel=1 ./ /
+          # A versão atual já foi enviada acima e as anteriores são históricas imutáveis.
+          mirror --reverse --transfer-all --overwrite --verbose --no-perms --no-umask --parallel=1 --exclude='(^|/)orca-funcional-v[0-9.]+/' ./ /
           bye
           LFTP_COMMANDS
           lftp_exit=$?
@@ -238,23 +239,23 @@ jobs:
           for attempt in $(seq 1 10); do
             if curl --silent --show-error --fail --max-time 45 \
               -X POST -H "X-MIGRATION-KEY: $APP_API_KEY" \
-              https://lemeinformatica.com.br/orca-funcional-v1.2.2/migrate.php \
+              https://lemeinformatica.com.br/orca-funcional-v1.2.3/migrate.php \
               -o .orca-migration.json; then
               orca_migration="$(php -r '$d=json_decode(file_get_contents(".orca-migration.json"),true); echo is_array($d)&&($d["ok"]??false)?($d["version"]??""):"";' || true)"
             fi
-            [[ "$orca_migration" == "1.2.2" ]] && break
+            [[ "$orca_migration" == "1.2.3" ]] && break
             sleep 3
           done
-          test "$orca_migration" = "1.2.2"
+          test "$orca_migration" = "1.2.3"
 
           curl --silent --show-error --fail --max-time 60 \
             -X POST -H "X-MIGRATION-KEY: $APP_API_KEY" \
-            https://lemeinformatica.com.br/orca-funcional-v1.2.2/smoke.php \
+            https://lemeinformatica.com.br/orca-funcional-v1.2.3/smoke.php \
             -o .orca-smoke.json
           test "$(php -r '$d=json_decode(file_get_contents(".orca-smoke.json"),true); echo is_array($d)&&($d["ok"]??false)?"ok":"fail";')" = "ok"
           test "$(curl --silent --show-error --fail --max-time 30 \
-            https://lemeinformatica.com.br/orca-funcional-v1.2.2/health.php | \
-            php -r '$d=json_decode(stream_get_contents(STDIN),true); echo is_array($d)&&($d["ok"]??false)&&($d["version"]??"")==="1.2.2"?"ok":"fail";')" = "ok"
+            https://lemeinformatica.com.br/orca-funcional-v1.2.3/health.php | \
+            php -r '$d=json_decode(stream_get_contents(STDIN),true); echo is_array($d)&&($d["ok"]??false)&&($d["version"]??"")==="1.2.3"?"ok":"fail";')" = "ok"
 
           expected_version="$(tr -d '\r\n' < "$GITHUB_WORKSPACE/pet/VERSION")"
           migration_version=""
@@ -290,5 +291,5 @@ jobs:
 
           test "$published_version" = "$expected_version"
           test "$(curl --silent --show-error --fail --max-time 30 \
-            https://lemeinformatica.com.br/PROJECT_HUB_VERSION | tr -d '\r\n')" = "1.4.1"
+            https://lemeinformatica.com.br/PROJECT_HUB_VERSION | tr -d '\r\n')" = "1.4.2"
           echo "$selected arquivos sincronizados. Versao $published_version confirmada."

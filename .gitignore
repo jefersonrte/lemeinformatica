@@ -1,6 +1,10 @@
 /includes/config.php
 /includes/database.runtime.php
 /gov/private/config.php
+/orca-funcional-v*/config/runtime.php
+/orca-funcional-v*/uploads/*
+!/orca-funcional-v*/uploads/.gitkeep
+!/orca-funcional-v*/uploads/.htaccess
 *.log
 .DS_Store
 Thumbs.db
