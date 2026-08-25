@@ -123,7 +123,7 @@ jobs:
         run: |
           if git ls-files \
             | grep -E '(^|/)(config\.php|database\.runtime\.php|\.env)$' \
-            | grep -v -E '^orca-funcional-v1\.2\.[012]/config/config\.php$'; then
+            | grep -v -E '^orca-funcional-v1\.2\.[0123]/config/config\.php$'; then
             echo "Runtime secret file is tracked."
             exit 1
           fi
