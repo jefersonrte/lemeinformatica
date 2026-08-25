@@ -1,0 +1,23 @@
+{
+    "name": "lemeinformatica/orca",
+    "description": "Orçamentista modular da Leme Informática",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.1",
+        "phpoffice/phpspreadsheet": "^2.1",
+        "phpmailer/phpmailer": "^6.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "scripts": {
+        "test": "php tests/run.php",
+        "lint": "php tests/lint.php"
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}

@@ -41,7 +41,7 @@ jobs:
         run: |
           find . -type f -name "*.php" -not -path "./.git/*" -print0 | xargs -0 -n1 php -l
           php .github/scripts/test-orca120-csrf.php
-          php orca-funcional-v1.2.3/tests/run.php
+          php orca-funcional-v1.2.4/tests/run.php
 
   frontend:
     name: Frontend and repository safety
@@ -57,7 +57,7 @@ jobs:
           node --check pet/tests/production-smoke.mjs
           node --check frontend/js/home.js
           node --check frontend/js/usuarios.js
-          node --check orca-funcional-v1.2.3/assets/js/app.js
+          node --check orca-funcional-v1.2.4/assets/js/app.js
 
       - name: Check Pet 1.1 contracts
         shell: bash
@@ -77,7 +77,17 @@ jobs:
       - name: Check project hub links
         shell: bash
         run: |
-          test "$(tr -d '\r\n' < PROJECT_HUB_VERSION)" = "1.4.2"
+          test "$(tr -d '\r\n' < PROJECT_HUB_VERSION)" = "1.4.3"
+          grep -q "https://lemeinformatica.com.br/orca-funcional-v1.2.4/" index.php
+          test -s orca-funcional-v1.2.4/src/Domain/Obra/ObraService.php
+          grep -q "ObraService" orca-funcional-v1.2.4/admin/obras.php
+          grep -q "etapas_padrao_obra" orca-funcional-v1.2.4/smoke.php
+          test -s orca-funcional-v1.2.4/src/Domain/Importacao/PlanilhaCatalogAnalyzer.php
+          test -s orca-funcional-v1.2.4/src/Infrastructure/OpenAiCatalogClassifier.php
+          grep -q "categoria_id_sugerida" orca-funcional-v1.2.4/admin/planilha_caixa.php
+          grep -q "Já cadastrado" orca-funcional-v1.2.4/admin/planilha_caixa.php
+          test ! -e orca-funcional-v1.2.4/config/runtime.php
+          test "$(find orca-funcional-v1.2.4/uploads -type f ! -name .gitkeep ! -name .htaccess | wc -l)" -eq 0
           grep -q "https://lemeinformatica.com.br/orca-funcional-v1.2.3/" index.php
           test -s orca-funcional-v1.2.3/src/Infrastructure/LegacyUploadMigrator.php
           grep -q "arquivos_plantas_disponiveis" orca-funcional-v1.2.3/smoke.php
@@ -123,7 +133,7 @@ jobs:
         run: |
           if git ls-files \
             | grep -E '(^|/)(config\.php|database\.runtime\.php|\.env)$' \
-            | grep -v -E '^orca-funcional-v1\.2\.[0123]/config/config\.php$'; then
+            | grep -v -E '^orca-funcional-v1\.2\.[01234]/config/config\.php$'; then
             echo "Runtime secret file is tracked."
             exit 1
           fi

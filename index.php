@@ -16,14 +16,26 @@ header("Content-Security-Policy: default-src 'self'; img-src 'self'; style-src '
 $projects = [
     [
         'name' => 'Orçamentista',
-        'description' => 'Versão atual recomendada, com recuperação dos arquivos históricos e leitor SVG sem carregamento infinito.',
+        'description' => 'Versão atual recomendada: cadastro de obras corrigido e importação inteligente com categoria e alerta de itens semelhantes.',
+        'url' => 'https://lemeinformatica.com.br/orca-funcional-v1.2.4/',
+        'category' => 'Orçamentos e obras',
+        'module' => 'orca',
+        'version' => 'v1.2.4',
+        'status' => 'Recomendado',
+        'status_class' => 'recommended',
+        'accent' => 'mint',
+        'local' => true,
+    ],
+    [
+        'name' => 'Orçamentista funcional',
+        'description' => 'Versão 1.2.3 preservada, com recuperação dos arquivos históricos e leitor SVG estável.',
         'url' => 'https://lemeinformatica.com.br/orca-funcional-v1.2.3/',
         'category' => 'Orçamentos e obras',
         'module' => 'orca',
         'version' => 'v1.2.3',
-        'status' => 'Recomendado',
-        'status_class' => 'recommended',
-        'accent' => 'mint',
+        'status' => 'Histórico',
+        'status_class' => 'stable',
+        'accent' => 'blue',
         'local' => true,
     ],
     [
@@ -221,7 +233,7 @@ $projects = [
             <h1 id="page-title">Todos os projetos Leme em um so lugar.</h1>
             <p class="intro-copy">Escolha o módulo e a versão que deseja acessar. Ambientes históricos permanecem disponíveis e os protegidos solicitarão seu login.</p>
             <div class="intro-actions">
-                <a class="primary-action" href="https://lemeinformatica.com.br/orca-funcional-v1.2.3/">Abrir Orçamentista v1.2.3</a>
+                <a class="primary-action" href="https://lemeinformatica.com.br/orca-funcional-v1.2.4/">Abrir Orçamentista v1.2.4</a>
                 <a class="secondary-action" href="#projects-title">Escolher outro módulo</a>
             </div>
         </section>

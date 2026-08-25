@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" role="img" aria-labelledby="title desc">
+  <title id="title">Cobertura arquitetônica</title><desc id="desc">Perspectiva técnica da cobertura do projeto Residencial Horizonte.</desc>
+  <rect width="1200" height="780" fill="#f9fbfd"/><g stroke="#dbe5ef" stroke-width="1"><path d="M0 65h1200M0 130h1200M0 195h1200M0 260h1200M0 325h1200M0 390h1200M0 455h1200M0 520h1200M0 585h1200M0 650h1200M0 715h1200"/><path d="M75 0v780M150 0v780M225 0v780M300 0v780M375 0v780M450 0v780M525 0v780M600 0v780M675 0v780M750 0v780M825 0v780M900 0v780M975 0v780M1050 0v780M1125 0v780"/></g>
+  <g fill="none" stroke="#355b7b" stroke-width="7" stroke-linejoin="round"><path d="M175 590V286L573 102l452 211v277z"/><path d="M175 286l414 230 436-203M589 516V102M175 590l414-74 436 74"/><path d="M264 574V336M366 555V392M472 535V451M704 535V463M818 554V411M921 574V360"/></g>
+  <g fill="#1f568f" font-family="Arial,sans-serif"><text x="64" y="68" font-size="28" font-weight="700">RESIDENCIAL HORIZONTE</text><text x="64" y="103" font-size="20">COBERTURA · PERSPECTIVA TÉCNICA</text><text x="920" y="730" font-size="20">PRANCHA A-07</text></g>
+</svg>
