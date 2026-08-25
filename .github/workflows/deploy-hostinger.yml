@@ -290,5 +290,5 @@ jobs:
 
           test "$published_version" = "$expected_version"
           test "$(curl --silent --show-error --fail --max-time 30 \
-            https://lemeinformatica.com.br/PROJECT_HUB_VERSION | tr -d '\r\n')" = "1.4.0"
+            https://lemeinformatica.com.br/PROJECT_HUB_VERSION | tr -d '\r\n')" = "1.4.1"
           echo "$selected arquivos sincronizados. Versao $published_version confirmada."
