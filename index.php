@@ -16,14 +16,26 @@ header("Content-Security-Policy: default-src 'self'; img-src 'self'; style-src '
 $projects = [
     [
         'name' => 'Orçamentista',
-        'description' => 'Versão atual recomendada: interface renovada com 6 temas, tema personalizado por degradê e 5 disposições de menu, mantendo a prévia de obra com 42 orçamentos reais e SINAPI.',
+        'description' => 'Versão atual recomendada: interface renovada em Grafite escuro, 7 temas, tema personalizado por degradê e 5 disposições de menu, mantendo a prévia de obra com 42 orçamentos reais e SINAPI.',
+        'url' => 'https://lemeinformatica.com.br/orca-funcional-v1.5.1/',
+        'category' => 'Orçamentos e obras',
+        'module' => 'orca',
+        'version' => 'v1.5.1',
+        'status' => 'Recomendado',
+        'status_class' => 'recommended',
+        'accent' => 'mint',
+        'local' => true,
+    ],
+    [
+        'name' => 'Orçamentista funcional',
+        'description' => 'Versão 1.5.0 preservada, primeira com temas e disposições de menu (padrão Grafite claro).',
         'url' => 'https://lemeinformatica.com.br/orca-funcional-v1.5.0/',
         'category' => 'Orçamentos e obras',
         'module' => 'orca',
         'version' => 'v1.5.0',
-        'status' => 'Recomendado',
-        'status_class' => 'recommended',
-        'accent' => 'mint',
+        'status' => 'Histórico',
+        'status_class' => 'stable',
+        'accent' => 'blue',
         'local' => true,
     ],
     [
@@ -281,7 +293,7 @@ $projects = [
             <h1 id="page-title">Todos os projetos Leme em um so lugar.</h1>
             <p class="intro-copy">Escolha o módulo e a versão que deseja acessar. Ambientes históricos permanecem disponíveis e os protegidos solicitarão seu login.</p>
             <div class="intro-actions">
-                <a class="primary-action" href="https://lemeinformatica.com.br/orca-funcional-v1.5.0/">Abrir Orçamentista v1.5.0</a>
+                <a class="primary-action" href="https://lemeinformatica.com.br/orca-funcional-v1.5.1/">Abrir Orçamentista v1.5.1</a>
                 <a class="secondary-action" href="#projects-title">Escolher outro módulo</a>
             </div>
         </section>
