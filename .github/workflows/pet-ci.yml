@@ -41,7 +41,7 @@ jobs:
         run: |
           find . -type f -name "*.php" -not -path "./.git/*" -print0 | xargs -0 -n1 php -l
           php .github/scripts/test-orca120-csrf.php
-          php orca-funcional-v1.4.0/tests/run.php
+          php orca-funcional-v1.4.1/tests/run.php
 
   frontend:
     name: Frontend and repository safety
@@ -57,7 +57,7 @@ jobs:
           node --check pet/tests/production-smoke.mjs
           node --check frontend/js/home.js
           node --check frontend/js/usuarios.js
-          node --check orca-funcional-v1.4.0/assets/js/app.js
+          node --check orca-funcional-v1.4.1/assets/js/app.js
 
       - name: Check Pet 1.1 contracts
         shell: bash
@@ -77,7 +77,11 @@ jobs:
       - name: Check project hub links
         shell: bash
         run: |
-          test "$(tr -d '\r\n' < PROJECT_HUB_VERSION)" = "1.4.5"
+          test "$(tr -d '\r\n' < PROJECT_HUB_VERSION)" = "1.4.6"
+          grep -q "https://lemeinformatica.com.br/orca-funcional-v1.4.1/" index.php
+          test -s orca-funcional-v1.4.1/database/referencias/acervo-orcamentos-reais.json
+          test ! -e orca-funcional-v1.4.1/config/runtime.php
+          test "$(find orca-funcional-v1.4.1/uploads -type f ! -name .gitkeep ! -name .htaccess | wc -l)" -eq 0
           grep -q "https://lemeinformatica.com.br/orca-funcional-v1.4.0/" index.php
           test -s orca-funcional-v1.4.0/src/Domain/Estimativa/EstimativaService.php
           test -s orca-funcional-v1.4.0/src/Domain/Estimativa/PlantaAnalyzer.php
@@ -147,7 +151,7 @@ jobs:
         run: |
           if git ls-files \
             | grep -E '(^|/)(config\.php|database\.runtime\.php|\.env)$' \
-            | grep -v -E '^orca-funcional-v1\.(2\.[01234]|3\.0|4\.0)/config/config\.php$'; then
+            | grep -v -E '^orca-funcional-v1\.(2\.[01234]|3\.0|4\.[01])/config/config\.php$'; then
             echo "Runtime secret file is tracked."
             exit 1
           fi
