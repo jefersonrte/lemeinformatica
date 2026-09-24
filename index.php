@@ -16,14 +16,26 @@ header("Content-Security-Policy: default-src 'self'; img-src 'self'; style-src '
 $projects = [
     [
         'name' => 'Orçamentista',
-        'description' => 'Versão atual recomendada: busca global com Ctrl+K, consulta de preços praticados e fornecedor rápido na cotação, além da junção das plantas, do acervo de obras de exemplo e da prévia de obra com 59 orçamentos reais e SINAPI.',
+        'description' => 'Versão atual recomendada: acervo de obras de exemplo cadastrado pelas telas (clientes fictícios, orçamentos reais e plantas), clientes sem acesso ao portal, busca global com Ctrl+K, consulta de preços, junção das plantas e prévia de obra com 59 orçamentos reais e SINAPI.',
+        'url' => 'https://lemeinformatica.com.br/orca-funcional-v1.5.6/',
+        'category' => 'Orçamentos e obras',
+        'module' => 'orca',
+        'version' => 'v1.5.6',
+        'status' => 'Recomendado',
+        'status_class' => 'recommended',
+        'accent' => 'mint',
+        'local' => true,
+    ],
+    [
+        'name' => 'Orçamentista funcional',
+        'description' => 'Versão 1.5.5 preservada, com busca global, consulta de preços e fornecedor rápido.',
         'url' => 'https://lemeinformatica.com.br/orca-funcional-v1.5.5/',
         'category' => 'Orçamentos e obras',
         'module' => 'orca',
         'version' => 'v1.5.5',
-        'status' => 'Recomendado',
-        'status_class' => 'recommended',
-        'accent' => 'mint',
+        'status' => 'Histórico',
+        'status_class' => 'stable',
+        'accent' => 'blue',
         'local' => true,
     ],
     [
@@ -341,7 +353,7 @@ $projects = [
             <h1 id="page-title">Todos os projetos Leme em um so lugar.</h1>
             <p class="intro-copy">Escolha o módulo e a versão que deseja acessar. Ambientes históricos permanecem disponíveis e os protegidos solicitarão seu login.</p>
             <div class="intro-actions">
-                <a class="primary-action" href="https://lemeinformatica.com.br/orca-funcional-v1.5.5/">Abrir Orçamentista v1.5.5</a>
+                <a class="primary-action" href="https://lemeinformatica.com.br/orca-funcional-v1.5.6/">Abrir Orçamentista v1.5.6</a>
                 <a class="secondary-action" href="#projects-title">Escolher outro módulo</a>
             </div>
         </section>

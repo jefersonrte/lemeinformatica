@@ -1,0 +1,141 @@
+<?php
+declare(strict_types=1);
+
+require_once __DIR__ . '/bootstrap/app.php';
+
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store');
+
+$configuredKey = (string) \App\Support\Config::get('security.migration_key', '');
+$receivedKey = (string) ($_SERVER['HTTP_X_MIGRATION_KEY'] ?? '');
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || $configuredKey === '' || !hash_equals($configuredKey, $receivedKey)) {
+    http_response_code(404);
+    echo json_encode(['ok' => false]);
+    exit;
+}
+
+$db = null;
+try {
+    $db = getDB();
+    $checks = [];
+    foreach (['usuarios', 'clientes', 'obras', 'obra_etapas', 'categorias', 'fornecedores', 'produtos', 'orcamentos', 'orcamento_itens', 'cotacoes', 'cotacao_itens', 'compras', 'obra_plantas', 'logs', 'referencias', 'referencia_itens', 'precos_base'] as $table) {
+        $checks['table_' . $table] = (int) $db->query("SELECT COUNT(*) FROM {$table}")->fetchColumn() >= 0;
+    }
+
+    $db->beginTransaction();
+    $suffix = bin2hex(random_bytes(5));
+    $db->prepare('INSERT INTO usuarios (nome,email,senha,role,ativo,email_verificado) VALUES (?,?,?,?,1,1)')
+        ->execute(['Teste automatizado', "smoke-{$suffix}@orca.invalid", password_hash($suffix, PASSWORD_DEFAULT), 'cliente']);
+    $userId = (int) $db->lastInsertId();
+    $db->prepare('INSERT INTO clientes (usuario_id,razao_social,email,cidade,estado) VALUES (?,?,?,?,?)')
+        ->execute([$userId, 'Cliente smoke ' . $suffix, "smoke-{$suffix}@orca.invalid", 'Florianópolis', 'SC']);
+    $clientId = (int) $db->lastInsertId();
+    $workService = new \App\Domain\Obra\ObraService($db);
+    $workId = $workService->criar([
+        'cliente_id' => $clientId,
+        'nome' => 'Obra smoke ' . $suffix,
+        'descricao' => 'Validação automatizada do cadastro de obra.',
+        'endereco' => 'Rua de teste, 100',
+        'cidade' => 'Florianópolis',
+        'estado' => 'SC',
+        'status' => 'em_andamento',
+        'data_inicio' => '2026-08-25',
+        'data_prev_fim' => null,
+        'valor_total' => 100000,
+        'progresso' => 50,
+    ]);
+    $checks['cadastro_obra'] = (int) $db->query('SELECT COUNT(*) FROM obras WHERE id=' . $workId . ' AND cliente_id=' . $clientId)->fetchColumn() === 1;
+    $checks['etapas_padrao_obra'] = (int) $db->query('SELECT COUNT(*) FROM obra_etapas WHERE obra_id=' . $workId)->fetchColumn() === 7;
+    $db->prepare('INSERT INTO categorias (nome,descricao) VALUES (?,?)')->execute(['Categoria ' . $suffix, 'Teste automatizado']);
+    $categoryId = (int) $db->lastInsertId();
+    $db->prepare('INSERT INTO fornecedores (nome,email,ativo) VALUES (?,?,1)')->execute(['Fornecedor ' . $suffix, "fornecedor-{$suffix}@orca.invalid"]);
+    $supplierId = (int) $db->lastInsertId();
+    $db->prepare('INSERT INTO fornecedor_categorias (fornecedor_id,categoria_id) VALUES (?,?)')->execute([$supplierId, $categoryId]);
+    $db->prepare('INSERT INTO produtos (categoria_id,codigo,nome,unidade) VALUES (?,?,?,?)')->execute([$categoryId, 'SMK-' . $suffix, 'Produto smoke', 'UN']);
+
+    $service = new \App\Domain\Orcamento\OrcamentoService($db);
+    $budgetId = $service->criar($workId, 'Orçamento smoke', 'manual', 'Teste transacional', [[
+        'descricao' => 'Item smoke', 'unidade' => 'UN', 'quantidade' => 2, 'preco_unitario' => 125, 'categoria_id' => $categoryId,
+    ]]);
+    $budgetTotal = (float) $db->query('SELECT total_estimado FROM orcamentos WHERE id=' . $budgetId)->fetchColumn();
+    $checks['calculo_orcamento'] = abs($budgetTotal - 250.0) < 0.001;
+    $budgetItemId = (int) $db->query('SELECT id FROM orcamento_itens WHERE orcamento_id=' . $budgetId . ' LIMIT 1')->fetchColumn();
+
+    // Edição com etapas/BDI, revisão e transição de status
+    $service->atualizar($budgetId, 'Orçamento smoke', 'Teste transacional', 10.0, [
+        ['id' => $budgetItemId, 'etapa' => 'Fundação', 'descricao' => 'Item smoke', 'unidade' => 'UN', 'quantidade' => 2, 'preco_unitario' => 125, 'categoria_id' => $categoryId],
+        ['etapa' => 'Fundação', 'descricao' => 'Item smoke 2', 'unidade' => 'M³', 'quantidade' => '1,5', 'preco_unitario' => 100],
+    ]);
+    $editado = $db->query('SELECT total_estimado, bdi_percentual FROM orcamentos WHERE id=' . $budgetId)->fetch();
+    $checks['edicao_orcamento_etapas_bdi'] = abs((float) $editado['total_estimado'] - 400.0) < 0.001
+        && (float) $editado['bdi_percentual'] === 10.0
+        && (int) $db->query("SELECT COUNT(*) FROM orcamento_itens WHERE orcamento_id=$budgetId AND etapa='Fundação'")->fetchColumn() === 2;
+    $revisionId = $service->duplicar($budgetId);
+    $checks['revisao_orcamento'] = (int) $db->query('SELECT revisao_de FROM orcamentos WHERE id=' . $revisionId)->fetchColumn() === $budgetId
+        && (int) $db->query('SELECT COUNT(*) FROM orcamento_itens WHERE orcamento_id=' . $revisionId)->fetchColumn() === 2;
+    $service->alterarStatus($revisionId, 'aprovado');
+    try {
+        $service->alterarStatus($revisionId, 'reprovado');
+        $checks['status_orcamento'] = false;
+    } catch (InvalidArgumentException) {
+        $checks['status_orcamento'] = $db->query('SELECT status FROM orcamentos WHERE id=' . $revisionId)->fetchColumn() === 'aprovado';
+    }
+    $service->excluir($revisionId);
+    $checks['exclusao_orcamento'] = (int) $db->query('SELECT COUNT(*) FROM orcamentos WHERE id=' . $revisionId)->fetchColumn() === 0;
+
+    // Prévia de obra: base carregada, estimativa paramétrica e orçamento aprovado virando referência
+    $checks['base_referencia_carregada'] = (int) $db->query('SELECT COUNT(*) FROM referencias WHERE ativo=1 AND area_construida>0')->fetchColumn() >= 3
+        && (int) $db->query('SELECT COUNT(*) FROM precos_base')->fetchColumn() > 1000;
+    $previa = (new \App\Domain\Estimativa\EstimativaService($db))->estimar(['area' => 200, 'tipologia' => 'residencial', 'padrao' => 'medio']);
+    $checks['previa_estimativa'] = $previa['total'] > 100000 && $previa['etapas'] !== [] && $previa['materiais'] !== []
+        && $previa['total_faixa'][0] <= $previa['total'] && $previa['total'] <= $previa['total_faixa'][1];
+    $service->alterarStatus($budgetId, 'aguardando_cotacao');
+    $service->alterarStatus($budgetId, 'aprovado');
+    $referenciaId = (new \App\Domain\Estimativa\ReferenciaService($db))->promoverOrcamento($budgetId, 'residencial', 100.0);
+    $checks['orcamento_vira_referencia'] = (int) $db->query('SELECT COUNT(*) FROM referencia_itens WHERE referencia_id=' . $referenciaId)->fetchColumn() === 2;
+
+    $db->prepare("INSERT INTO cotacoes (orcamento_id,fornecedor_id,status,canal_envio,mensagem) VALUES (?,?,'respondida','manual',?)")
+        ->execute([$budgetId, $supplierId, 'Teste automatizado']);
+    $quotationId = (int) $db->lastInsertId();
+    $db->prepare('INSERT INTO cotacao_itens (cotacao_id,orcamento_item_id,descricao,unidade,quantidade,preco_unitario) VALUES (?,?,?,?,?,?)')
+        ->execute([$quotationId, $budgetItemId, 'Item smoke', 'UN', 2, 110]);
+    $db->prepare("INSERT INTO compras (obra_id,cotacao_id,fornecedor_id,status,valor_total) VALUES (?,?,?,'confirmado',?)")
+        ->execute([$workId, $quotationId, $supplierId, 220]);
+    $db->prepare('INSERT INTO logs (usuario_id,acao,tabela,registro_id,detalhe,ip) VALUES (?,?,?,?,?,?)')
+        ->execute([$userId, 'smoke_test', 'obras', $workId, 'Teste de integração', '127.0.0.1']);
+
+    $checks['crud_relacional'] = (int) $db->query('SELECT COUNT(*) FROM compras WHERE obra_id=' . $workId)->fetchColumn() === 1;
+    $checks['dashboard_financeiro'] = (float) $db->query('SELECT COALESCE(SUM(valor_total),0) FROM compras WHERE obra_id=' . $workId)->fetchColumn() === 220.0;
+    $plantRows = $db->query('SELECT arquivo,mime_type FROM obra_plantas')->fetchAll();
+    $checks['plantas_demo'] = count($plantRows) >= 4;
+    $checks['arquivos_plantas_disponiveis'] = $plantRows !== [] && array_reduce(
+        $plantRows,
+        static fn (bool $available, array $plant): bool => $available
+            && is_file(rtrim(UPLOAD_DIR, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, (string) $plant['arquivo'])),
+        true
+    );
+    $svgSeguro = \App\Domain\Obra\SvgSanitizer::sanitize(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0h10v10z"/></svg>'
+    );
+    $checks['svg_seguro'] = str_contains($svgSeguro, '<svg') && str_contains($svgSeguro, '<path');
+    try {
+        \App\Domain\Obra\SvgSanitizer::sanitize(
+            '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'
+        );
+        $checks['svg_malicioso_bloqueado'] = false;
+    } catch (InvalidArgumentException) {
+        $checks['svg_malicioso_bloqueado'] = true;
+    }
+    $db->rollBack();
+
+    $failed = array_keys(array_filter($checks, static fn (bool $ok): bool => !$ok));
+    http_response_code($failed === [] ? 200 : 500);
+    echo json_encode(['ok' => $failed === [], 'version' => APP_VERSION, 'checks' => count($checks), 'failed' => $failed], JSON_UNESCAPED_UNICODE);
+} catch (Throwable $exception) {
+    if ($db instanceof PDO && $db->inTransaction()) {
+        $db->rollBack();
+    }
+    error_log('[smoke] ' . $exception);
+    http_response_code(500);
+    echo json_encode(['ok' => false, 'error' => 'Falha no teste de integração.']);
+}
