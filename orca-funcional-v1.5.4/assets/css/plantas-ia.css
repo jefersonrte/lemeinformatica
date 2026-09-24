@@ -1,0 +1,84 @@
+/* Junção das plantas — animação em SVG com as cores do tema ativo */
+.uniao-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+.uniao-acoes [hidden], .uniao-aviso[hidden] { display: none; }
+.uniao-card { margin-bottom: 18px; }
+
+.uniao-etapas { display: flex; gap: 6px; margin: 0; padding: 0; list-style: none; counter-reset: etapa; }
+.uniao-etapas li {
+    counter-increment: etapa;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px 4px 5px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-muted);
+    font-size: .74rem;
+    font-weight: 700;
+    transition: color .3s, background .3s, border-color .3s;
+}
+.uniao-etapas li::before {
+    content: counter(etapa);
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--surface-3);
+    font-size: .68rem;
+}
+.uniao-etapas li.is-atual { color: var(--primary); border-color: var(--primary); background: var(--primary-soft); }
+.uniao-etapas li.is-atual::before { background: var(--primary); color: var(--on-primary); }
+.uniao-etapas li.is-feita { color: var(--accent); border-color: transparent; background: var(--accent-soft); }
+.uniao-etapas li.is-feita::before { content: "✓"; background: var(--accent); color: var(--on-primary); }
+
+.uniao-palco { background: var(--surface-2); }
+.uniao-palco svg { display: block; width: 100%; height: auto; max-height: 72vh; }
+.uniao-grade { stroke: var(--border); stroke-width: 1; opacity: .6; }
+.uniao-faixa-0 { stop-color: var(--accent); stop-opacity: 0; }
+.uniao-faixa-1 { stop-color: var(--accent); stop-opacity: .28; }
+.uniao-faixa-2 { stop-color: var(--accent); stop-opacity: .9; }
+
+/* Peças: cada prancha é um grupo centrado em (0,0) movido por transform */
+.uniao-peca { transform-origin: 0 0; transition: transform 1.2s var(--ease), opacity .6s var(--ease); }
+.uniao-papel { fill: #fff; filter: drop-shadow(0 10px 18px rgba(16, 42, 67, .14)); transition: filter .8s; }
+.uniao-peca.is-unida .uniao-papel { filter: none; }
+.uniao-img { opacity: 0; transition: opacity .8s var(--ease); }
+.uniao-peca.is-visivel .uniao-img { opacity: 1; }
+.uniao-borda { fill: none; stroke: var(--primary); stroke-width: 3; stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset 1s var(--ease), stroke .6s, stroke-width .6s; }
+.uniao-peca.is-desenhada .uniao-borda { stroke-dashoffset: 0; }
+.uniao-peca.is-unida .uniao-borda { stroke: var(--border-strong); stroke-width: 1.5; }
+.uniao-faixa { opacity: 0; }
+.uniao-ponto { fill: var(--accent); }
+.uniao-ponto-halo { fill: none; stroke: var(--accent); stroke-width: 2; }
+.uniao-chip rect { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; }
+.uniao-chip text { fill: var(--heading); font: 700 15px var(--font); }
+.uniao-rotulo { opacity: 0; transition: opacity .6s var(--ease); }
+.uniao-peca.is-unida .uniao-rotulo { opacity: 1; }
+.uniao-rotulo rect { fill: var(--primary); }
+.uniao-rotulo text { fill: var(--on-primary); font: 700 14px var(--font); }
+
+.uniao-ligacao { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset .9s var(--ease), opacity .6s; }
+.uniao-ligacao.is-desenhada { stroke-dashoffset: 0; }
+.uniao-no { fill: var(--surface); stroke: var(--accent); stroke-width: 3; transition: opacity .6s; }
+#uniaoLigacoes > * { transition: opacity .6s; }
+#uniaoLigacoes.is-saindo > * { opacity: 0; }
+
+.uniao-contorno { fill: none; stroke: var(--primary); stroke-width: 4; stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset 1.6s var(--ease); }
+.uniao-contorno.is-desenhada { stroke-dashoffset: 0; }
+
+.uniao-rodape { display: flex; align-items: center; gap: 14px; padding: 12px 22px; border-top: 1px solid var(--border); }
+.uniao-progresso { flex: 1; height: 6px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.uniao-progresso span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--primary); transition: width .5s var(--ease); }
+.uniao-rodape p { min-width: 0; margin: 0; color: var(--text-muted); font-size: .8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.uniao-metricas .catalog-metric strong { font-variant-numeric: tabular-nums; }
+.uniao-aviso { margin: -6px 0 18px; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--tint-yellow-bg); color: var(--tint-yellow-fg); font-size: .8rem; }
+
+@media (max-width: 760px) {
+    .uniao-etapas li { padding-right: 5px; font-size: 0; gap: 0; }
+    .uniao-rodape p { max-width: 55%; }
+    .uniao-metricas { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .uniao-peca, .uniao-img, .uniao-borda, .uniao-ligacao, .uniao-contorno, .uniao-rotulo { transition-duration: .01ms !important; }
+}
